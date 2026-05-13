@@ -11,7 +11,6 @@ import { createThinkingTools } from './tool/thinking.js'
 import { UTAManager, createSnapshotService, createSnapshotScheduler } from './domain/trading/index.js'
 import { FxService } from './domain/trading/fx-service.js'
 import { createTradingTools } from './tool/trading.js'
-import { createBrowserTools } from './tool/browser.js'
 import { SymbolIndex } from './domain/market-data/equity/index.js'
 import { CommodityCatalog } from './domain/market-data/commodity/index.js'
 import { createEquityTools } from './tool/equity.js'
@@ -194,7 +193,6 @@ async function main() {
     'trading',
   )
 
-  toolCenter.register(createBrowserTools(), 'browser')
   toolCenter.register(createCronTools(cronEngine), 'cron')
   toolCenter.register(createMarketSearchTools(marketSearch), 'market-search')
   toolCenter.register(createEquityTools(equityClient), 'equity')

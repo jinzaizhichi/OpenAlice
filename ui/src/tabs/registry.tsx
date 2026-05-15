@@ -19,6 +19,7 @@ import { NewsCollectorPage } from '../pages/NewsCollectorPage'
 import { UTADetailPage } from '../pages/UTADetailPage'
 import { DevPage } from '../pages/DevPage'
 import { NotificationsInboxPage } from '../pages/NotificationsInboxPage'
+import { InboxPage } from '../pages/InboxPage'
 import { WorkspaceListPage } from '../pages/WorkspaceListPage'
 import { WorkspacePage } from '../pages/WorkspacePage'
 
@@ -180,6 +181,13 @@ const notificationsInboxModule: ViewModule<'notifications-inbox'> = {
   Component: NotificationsInboxPage,
 }
 
+const inboxModule: ViewModule<'inbox'> = {
+  kind: 'inbox',
+  title: () => 'Inbox',
+  toUrl: () => '/inbox',
+  Component: InboxPage,
+}
+
 const workspaceListModule: ViewModule<'workspace-list'> = {
   kind: 'workspace-list',
   title: () => 'Workspaces',
@@ -219,6 +227,7 @@ export const VIEWS = {
   'uta-detail': utaDetailModule,
   dev: devModule,
   'notifications-inbox': notificationsInboxModule,
+  inbox: inboxModule,
   'workspace-list': workspaceListModule,
   workspace: workspaceModule,
 } as const satisfies { [K in ViewKind]: ViewModule<K> }

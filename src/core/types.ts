@@ -15,6 +15,7 @@ import type { ToolCenter } from './tool-center.js'
 import type { ListenerRegistry } from './listener-registry.js'
 import type { EventBus } from './event-bus.js'
 import type { INotificationsStore } from './notifications-store.js'
+import type { IInboxStore } from './inbox-store.js'
 
 export type { Config, WebChannel }
 
@@ -35,6 +36,10 @@ export interface EngineContext {
   connectorCenter: ConnectorCenter
   /** Canonical store of system notifications; connectors subscribe via onAppended. */
   notificationsStore: INotificationsStore
+  /** Workspace-anchored push surface (Linear-inbox style). v0: read path
+   *  wired, production write path deliberately deferred — only dev seed
+   *  endpoint exists until the workspace integration pathway is decided. */
+  inboxStore: IInboxStore
   agentCenter: AgentCenter
   eventLog: EventLog
   toolCallLog: ToolCallLog

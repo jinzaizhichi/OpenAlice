@@ -16,7 +16,7 @@ import { useWorkspace } from './tabs/store'
  * Each maps to one or more tab kinds via tabs/registry.ts (defaultSpecForActivity).
  */
 export type Page =
-  | 'chat' | 'workspaces' | 'portfolio' | 'news' | 'automation' | 'market'
+  | 'chat' | 'inbox' | 'workspaces' | 'portfolio' | 'news' | 'automation' | 'market'
   | 'trading-as-git'
   | 'settings' | 'dev'
 

@@ -55,8 +55,11 @@ export function UrlAdopter() {
         <Route path="/dev" element={<Navigate to="/dev/connectors" replace />} />
         <Route path="/dev/:tab" element={<AdoptDev />} />
 
-        {/* Notifications inbox */}
+        {/* Notifications inbox (legacy — Chat sidebar) */}
         <Route path="/notifications" element={<AdoptStatic spec={{ kind: 'notifications-inbox', params: {} }} />} />
+
+        {/* Inbox (workspace-anchored, Linear-style) */}
+        <Route path="/inbox" element={<AdoptStatic spec={{ kind: 'inbox', params: {} }} />} />
 
         {/* Workspaces */}
         <Route path="/workspaces" element={<AdoptStatic spec={{ kind: 'workspace-list', params: {} }} />} />

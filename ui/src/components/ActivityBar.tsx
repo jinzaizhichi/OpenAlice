@@ -1,7 +1,8 @@
-import { type LucideIcon, MessageSquare, LineChart, GitBranch, BarChart3, Newspaper, Zap, Settings, Code2, TerminalSquare } from 'lucide-react'
+import { type LucideIcon, MessageSquare, Inbox, LineChart, GitBranch, BarChart3, Newspaper, Zap, Settings, Code2, TerminalSquare } from 'lucide-react'
 import { type Page } from '../App'
 import { useWorkspace } from '../tabs/store'
 import type { ActivitySection, ViewSpec } from '../tabs/types'
+import { useUnreadInboxCount } from '../live/inbox-read'
 
 /**
  * Map ActivityBar page enum (visual layout grouping) to the ActivitySection
@@ -10,6 +11,7 @@ import type { ActivitySection, ViewSpec } from '../tabs/types'
 function activitySectionFor(page: Page): ActivitySection {
   switch (page) {
     case 'chat':           return 'chat'
+    case 'inbox':          return 'inbox'
     case 'workspaces':     return 'workspaces'
     case 'trading-as-git': return 'trading-as-git'
     case 'settings':       return 'settings'
@@ -58,6 +60,7 @@ const NAV_SECTIONS: NavSection[] = [
     sectionLabel: '',
     items: [
       { page: 'chat',           label: 'Chat',           icon: MessageSquare },
+      { page: 'inbox',          label: 'Inbox',          icon: Inbox, defaultTab: { kind: 'inbox', params: {} } },
       { page: 'workspaces',     label: 'Workspaces',     icon: TerminalSquare },
       { page: 'portfolio',      label: 'Portfolio',      icon: LineChart, defaultTab: { kind: 'portfolio', params: {} } },
       { page: 'trading-as-git', label: 'Trading as Git', icon: GitBranch },
@@ -86,6 +89,7 @@ export function ActivityBar({ open, onClose }: ActivityBarProps) {
   const selectedSidebar = useWorkspace((state) => state.selectedSidebar)
   const setSidebar = useWorkspace((state) => state.setSidebar)
   const openOrFocus = useWorkspace((state) => state.openOrFocus)
+  const unreadInbox = useUnreadInboxCount()
 
   return (
     <>
@@ -168,8 +172,16 @@ export function ActivityBar({ open, onClose }: ActivityBarProps) {
                         }`}
                         aria-hidden
                       />
-                      <span className="flex items-center justify-center w-5 h-5">
+                      <span className="relative flex items-center justify-center w-5 h-5">
                         <Icon size={18} strokeWidth={1.5} />
+                        {item.page === 'inbox' && unreadInbox > 0 && (
+                          <span
+                            aria-label={`${unreadInbox} unread`}
+                            className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 rounded-full bg-red text-[9px] font-semibold text-white tabular-nums flex items-center justify-center"
+                          >
+                            {unreadInbox > 99 ? '99+' : unreadInbox}
+                          </span>
+                        )}
                       </span>
                       <span className="md:hidden">{item.label}</span>
                     </button>

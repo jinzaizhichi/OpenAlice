@@ -18,8 +18,10 @@ import { SidebarRow } from './SidebarRow'
  *     OpenAlice's ChatHook. Required for connectors (Telegram / MCP Ask
  *     / webhook) which have no PTY to host a CLI in.
  *
- * Above both: Notifications — a system-push surface that shares this
- * sidebar because the unifying mental model is "everything Alice-shaped".
+ * The legacy Notifications row sits inside the Traditional section because
+ * the old NotificationsStore is a pre-Workspace artifact — heartbeat / cron
+ * pushes were designed for the traditional single-session chat surface.
+ * Workspace-anchored pushes have their own top-level Inbox activity.
  *
  * Active row tracking is derived from the focused tab — switching tabs
  * naturally shifts the highlight without bespoke wiring.
@@ -35,29 +37,6 @@ export function ChatChannelListContainer() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="py-0.5 space-y-0.5">
-        <SidebarRow
-          label={
-            <span className="flex items-center gap-2">
-              <Bell size={14} strokeWidth={1.8} className="shrink-0" />
-              <span>Notifications</span>
-            </span>
-          }
-          active={inboxActive}
-          onClick={() => openOrFocus({ kind: 'notifications-inbox', params: {} })}
-          trail={
-            unreadCount > 0 ? (
-              <span
-                className="min-w-[16px] h-[16px] px-1 rounded-full bg-red text-[10px] font-semibold text-white tabular-nums flex items-center justify-center"
-                aria-label={`${unreadCount} unread`}
-              >
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
-            ) : undefined
-          }
-        />
-      </div>
-
       <div className="flex-1 overflow-y-auto min-h-0">
         <ChatWorkspaceSection />
 
@@ -65,6 +44,26 @@ export function ChatChannelListContainer() {
           Traditional
         </div>
         <div className="mt-0.5">
+          <SidebarRow
+            label={
+              <span className="flex items-center gap-2">
+                <Bell size={14} strokeWidth={1.8} className="shrink-0" />
+                <span>Notifications</span>
+              </span>
+            }
+            active={inboxActive}
+            onClick={() => openOrFocus({ kind: 'notifications-inbox', params: {} })}
+            trail={
+              unreadCount > 0 ? (
+                <span
+                  className="min-w-[16px] h-[16px] px-1 rounded-full bg-red text-[10px] font-semibold text-white tabular-nums flex items-center justify-center"
+                  aria-label={`${unreadCount} unread`}
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              ) : undefined
+            }
+          />
           <ChatChannelList
             channels={channels}
             activeChannel={focusedChannelId}

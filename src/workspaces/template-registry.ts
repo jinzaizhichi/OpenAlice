@@ -25,6 +25,21 @@ export interface TemplateMeta {
   readonly bootstrapScript: string;
   /** Absolute path to the template's `files/` directory (may not exist). */
   readonly filesDir: string;
+  /** Absolute path to the template root (parent of `files/`). */
+  readonly templateDir: string;
+  /**
+   * Absolute path to the template's `README.md`. Undefined if the template
+   * doesn't ship one yet. Future templates should always ship one — VSC's
+   * convention: README is the canonical human-facing description.
+   */
+  readonly readmePath?: string;
+  /**
+   * Template version, declared in README frontmatter. Used for the
+   * lineage-based upgrade hint (compare a workspace's spawned-from version
+   * against the current template version). Templates without a README, or
+   * without a `version:` key, fall back to "0.0.0".
+   */
+  readonly version: string;
   /**
    * Adapter ids the template wants enabled by default in new workspaces
    * (the create form pre-checks these). Sourced from `template.json`'s
@@ -66,6 +81,9 @@ export class TemplateRegistry {
       }
       const filesDir = join(templateDir, 'files');
       const tplMeta = await readTemplateMeta(join(templateDir, 'template.json'));
+      const readmePath = join(templateDir, 'README.md');
+      const hasReadme = existsSync(readmePath);
+      const version = hasReadme ? await readReadmeVersion(readmePath) : '0.0.0';
       const meta: TemplateMeta = {
         name,
         ...(tplMeta.description !== undefined ? { description: tplMeta.description } : {}),
@@ -73,6 +91,9 @@ export class TemplateRegistry {
         ...(tplMeta.groupOrder !== undefined ? { groupOrder: tplMeta.groupOrder } : {}),
         bootstrapScript,
         filesDir,
+        templateDir,
+        ...(hasReadme ? { readmePath } : {}),
+        version,
         defaultAgents: tplMeta.defaultAgents,
       };
       reg.byName.set(name, meta);
@@ -115,6 +136,54 @@ interface ParsedTemplateMeta {
   readonly displayName?: string;
   readonly groupOrder?: number;
   readonly defaultAgents: readonly string[];
+}
+
+/**
+ * Read the `version:` field from a README's YAML frontmatter. We keep this
+ * deliberately tiny — full YAML support is overkill for what is, by design,
+ * a single string field. Anything more structured belongs in `template.json`,
+ * not in README frontmatter (the frontmatter is the human-facing
+ * description's metadata, not a config surface).
+ *
+ * Returns "0.0.0" when:
+ *   - the file is unreadable
+ *   - there's no frontmatter block (no `---` at the very top)
+ *   - the frontmatter has no `version:` key
+ *   - the value isn't a non-empty string
+ */
+export async function readReadmeVersion(readmePath: string): Promise<string> {
+  try {
+    const raw = await readFile(readmePath, 'utf8');
+    return extractVersion(raw);
+  } catch {
+    return '0.0.0';
+  }
+}
+
+function extractVersion(raw: string): string {
+  // Frontmatter must be at the very top — no leading whitespace except a BOM.
+  const text = raw.replace(/^﻿/, '');
+  if (!text.startsWith('---')) return '0.0.0';
+  // Find the closing fence. Must start at column 0 on its own line.
+  const closeRe = /^---\s*$/m;
+  const remainder = text.slice(3);
+  const closeMatch = closeRe.exec(remainder);
+  if (!closeMatch || closeMatch.index === undefined) return '0.0.0';
+  const block = remainder.slice(0, closeMatch.index);
+  // Naive line-by-line parse — sufficient for `version: 1.0.0` and
+  // `version: "1.0.0"`. Quoted strings get unquoted.
+  for (const line of block.split(/\r?\n/)) {
+    const m = /^\s*version\s*:\s*(.+?)\s*$/.exec(line);
+    if (m && m[1]) {
+      let v = m[1];
+      // Strip surrounding quotes if present.
+      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+        v = v.slice(1, -1);
+      }
+      if (v.length > 0) return v;
+    }
+  }
+  return '0.0.0';
 }
 
 async function readTemplateMeta(path: string): Promise<ParsedTemplateMeta> {

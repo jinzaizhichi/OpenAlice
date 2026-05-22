@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { ChevronRight, Cpu, ScrollText, Settings, Sparkles, Terminal, type LucideIcon } from 'lucide-react'
+import { ArrowUpCircle, ChevronRight, Cpu, GitBranch, ScrollText, Settings, Sparkles, Terminal, type LucideIcon } from 'lucide-react'
 import type { GitLogEntry, Workspace } from './api'
 
 /**
@@ -43,6 +43,13 @@ interface Props {
   onOpen: () => void
   onOpenSession: (sessionId: string) => void
   onConfigure?: () => void
+  /**
+   * Open the template's detail page — used by the upgrade badge so the
+   * user (or the agent reading the page) can see what's new before
+   * deciding to self-upgrade. Optional; when absent the badge still
+   * displays but isn't clickable.
+   */
+  onOpenTemplate?: (templateName: string) => void
 }
 
 export function OverviewCard({
@@ -51,6 +58,7 @@ export function OverviewCard({
   onOpen,
   onOpenSession,
   onConfigure,
+  onOpenTemplate,
 }: Props) {
   const w = workspace
   const hasRunning = w.sessions.some((s) => s.state === 'running')
@@ -92,6 +100,21 @@ export function OverviewCard({
             Active {relativeTime(lastActivityMs)}
           </p>
         </div>
+        {w.upgradeAvailable && w.template && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onOpenTemplate?.(w.template!)
+            }}
+            disabled={!onOpenTemplate}
+            title={`Template moved from v${w.upgradeAvailable.from} → v${w.upgradeAvailable.to}. The agent can self-upgrade by reading the new README and updating this workspace.`}
+            className="shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-accent border border-accent/40 hover:border-accent/80 hover:bg-accent/10 transition-colors disabled:cursor-default disabled:hover:border-accent/40 disabled:hover:bg-transparent"
+          >
+            <ArrowUpCircle size={10} strokeWidth={2.25} />
+            <span>v{w.upgradeAvailable.to}</span>
+          </button>
+        )}
       </div>
 
       {/* Sessions */}
@@ -134,8 +157,16 @@ export function OverviewCard({
       </div>
 
       {/* Footer — only rendered when there's something to show */}
-      {(overrideAgents.length > 0 || lastCommit) && (
+      {(overrideAgents.length > 0 || lastCommit || (w.template && w.spawnedFromVersion)) && (
         <div className="border-t border-border pt-3 space-y-1.5">
+          {w.template && w.spawnedFromVersion && (
+            <div className="flex items-center gap-2 text-[11px] text-text-muted">
+              <GitBranch size={11} strokeWidth={2.25} className="shrink-0" />
+              <span className="truncate">
+                from {w.template} v{w.spawnedFromVersion}
+              </span>
+            </div>
+          )}
           {overrideAgents.length > 0 && onConfigure && (
             <button
               type="button"

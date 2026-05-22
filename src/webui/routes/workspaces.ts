@@ -33,8 +33,27 @@ export function createWorkspaceRoutes(svc: WorkspaceService): Hono {
         ...(t.displayName !== undefined ? { displayName: t.displayName } : {}),
         ...(t.groupOrder !== undefined ? { groupOrder: t.groupOrder } : {}),
         defaultAgents: t.defaultAgents,
+        version: t.version,
+        hasReadme: t.readmePath !== undefined,
       })),
     });
+  });
+
+  // Raw README markdown (frontmatter included — the client strips it before
+  // rendering). 404 when the template doesn't ship a README yet; we don't
+  // synthesize a placeholder. Cheap on-demand disk read, no cache.
+  app.get('/templates/:name/readme', async (c) => {
+    const name = c.req.param('name');
+    const tpl = svc.templates.get(name);
+    if (!tpl) return c.json({ error: 'unknown_template' }, 404);
+    if (!tpl.readmePath) return c.json({ error: 'no_readme' }, 404);
+    try {
+      const raw = await readFile(tpl.readmePath, 'utf8');
+      return c.body(raw, 200, { 'content-type': 'text/markdown; charset=utf-8' });
+    } catch (err) {
+      launcherLogger.warn('template.readme_read_failed', { name, err });
+      return c.json({ error: 'read_failed', message: (err as Error).message }, 500);
+    }
   });
 
   app.get('/agents', (c) => {

@@ -98,4 +98,10 @@ fi
 # 4. results.tsv header — the agent appends rows from here on out.
 printf 'commit\tevent\tstrategy_name\tsharpe\tmax_dd\tnote\n' > results.tsv
 
+# Intentionally NOT calling copy_readme here: the workspace IS an Auto-Quant
+# clone, so its working tree already carries Auto-Quant's own README.md,
+# which is the right one for the agent / user opening the folder. Our
+# template-level README.md lives in templates/auto-quant/README.md and
+# powers the showcase page — it isn't meant to land in the instance.
+
 echo "bootstrapped autoresearch/$TAG at $OUT_DIR"

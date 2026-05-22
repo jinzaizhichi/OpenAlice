@@ -69,6 +69,12 @@ export function UrlAdopter() {
 
         {/* Workspaces */}
         <Route path="/workspaces" element={<AdoptStatic spec={{ kind: 'workspace-list', params: {} }} />} />
+        {/* Template catalog routes must come before /workspaces/:wsId so the
+            static `templates` segment wins the match (it would otherwise
+            never collide — wsIds are UUIDs — but route specificity is the
+            defensive default). */}
+        <Route path="/workspaces/templates" element={<AdoptStatic spec={{ kind: 'template-catalog', params: {} }} />} />
+        <Route path="/workspaces/templates/:name" element={<AdoptTemplateDetail />} />
         <Route path="/workspaces/:wsId" element={<AdoptWorkspace />} />
         <Route path="/workspaces/:wsId/s/:sessionId" element={<AdoptWorkspace />} />
 
@@ -164,6 +170,12 @@ function AdoptWorkspace() {
   const params: { wsId: string; sessionId?: string } = { wsId }
   if (sessionId) params.sessionId = sessionId
   return <AdoptStatic spec={{ kind: 'workspace', params }} />
+}
+
+function AdoptTemplateDetail() {
+  const { name } = useParams<{ name: string }>()
+  if (!name) return <Navigate to="/workspaces/templates" replace />
+  return <AdoptStatic spec={{ kind: 'template-detail', params: { name } }} />
 }
 
 function RedirectUtaDetail() {

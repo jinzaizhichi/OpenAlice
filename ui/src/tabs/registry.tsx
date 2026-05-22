@@ -22,6 +22,8 @@ import { NotificationsInboxPage } from '../pages/NotificationsInboxPage'
 import { InboxPage } from '../pages/InboxPage'
 import { WorkspaceListPage } from '../pages/WorkspaceListPage'
 import { WorkspacePage } from '../pages/WorkspacePage'
+import { TemplateCatalogPage } from '../pages/TemplateCatalogPage'
+import { TemplateDetailPage } from '../pages/TemplateDetailPage'
 
 /**
  * Central registry mapping each ViewKind to its render component and URL
@@ -214,6 +216,20 @@ const workspaceModule: ViewModule<'workspace'> = {
   Component: WorkspacePage,
 }
 
+const templateCatalogModule: ViewModule<'template-catalog'> = {
+  kind: 'template-catalog',
+  title: () => 'Templates',
+  toUrl: () => '/workspaces/templates',
+  Component: () => <TemplateCatalogPage />,
+}
+
+const templateDetailModule: ViewModule<'template-detail'> = {
+  kind: 'template-detail',
+  title: (spec) => `Template · ${spec.params.name}`,
+  toUrl: (spec) => `/workspaces/templates/${encodeURIComponent(spec.params.name)}`,
+  Component: ({ spec }) => <TemplateDetailPage spec={spec} />,
+}
+
 // ==================== Aggregate ====================
 
 export const VIEWS = {
@@ -230,6 +246,8 @@ export const VIEWS = {
   inbox: inboxModule,
   'workspace-list': workspaceListModule,
   workspace: workspaceModule,
+  'template-catalog': templateCatalogModule,
+  'template-detail': templateDetailModule,
 } as const satisfies { [K in ViewKind]: ViewModule<K> }
 
 /** Untyped lookup — narrow at the call site by inspecting `spec.kind`. */

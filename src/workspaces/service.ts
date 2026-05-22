@@ -22,7 +22,7 @@ import { ScrollbackStore } from './scrollback-store.js';
 import { SessionPool, type SessionFactoryContext } from './session-pool.js';
 import { SessionRegistry, type SessionRecord } from './session-registry.js';
 import { buildSpawnEnv } from './spawn-env.js';
-import { TemplateRegistry } from './template-registry.js';
+import { readReadmeVersion, TemplateRegistry } from './template-registry.js';
 import { TranscriptWatcher } from './transcript-watcher.js';
 import { WorkspaceCreator } from './workspace-creator.js';
 import { WorkspaceRegistry, type WorkspaceMeta } from './workspace-registry.js';
@@ -140,6 +140,8 @@ export async function createWorkspaceService(opts: CreateWorkspaceServiceOptions
       description: 'legacy AQ_BOOTSTRAP_SCRIPT entry — migrate to a real template',
       bootstrapScript: config.legacyBootstrapScript,
       filesDir: '',
+      templateDir: '',
+      version: '0.0.0',
       defaultAgents: ['claude'],
     });
   }
@@ -338,7 +340,37 @@ export async function createWorkspaceService(opts: CreateWorkspaceServiceOptions
       claude: existsSync(join(w.dir, '.claude', 'settings.local.json')),
       codex: existsSync(join(w.dir, '.codex')),
     };
-    return { ...w, sessions, agentOverride };
+    // Version lineage + upgrade hint. We read the instance README's
+    // frontmatter for the "current" version each list call — cheap (one
+    // file read per workspace) and authoritative: the agent self-upgrades
+    // by bumping that frontmatter, so reading it live makes the badge
+    // disappear without any extra plumbing.
+    let currentVersion: string | undefined;
+    let upgradeAvailable: { from: string; to: string } | null = null;
+    if (w.template) {
+      const tpl = templates.get(w.template);
+      if (tpl) {
+        const instanceReadme = join(w.dir, 'README.md');
+        const fromInstance = existsSync(instanceReadme)
+          ? await readReadmeVersion(instanceReadme).catch(() => undefined)
+          : undefined;
+        currentVersion = fromInstance ?? w.spawnedFromVersion;
+        // Surface the badge when the template has moved past whatever
+        // version the instance self-claims. `compareVersions` returns 1
+        // when tpl.version > currentVersion. Missing currentVersion (and
+        // no spawnedFromVersion) → no signal, don't guess.
+        if (currentVersion && compareVersions(tpl.version, currentVersion) > 0) {
+          upgradeAvailable = { from: currentVersion, to: tpl.version };
+        }
+      }
+    }
+    return {
+      ...w,
+      sessions,
+      agentOverride,
+      ...(currentVersion !== undefined ? { currentVersion } : {}),
+      upgradeAvailable,
+    };
   };
 
   const dispose = async (reason: string): Promise<void> => {
@@ -369,3 +401,28 @@ export async function createWorkspaceService(opts: CreateWorkspaceServiceOptions
 }
 
 export type { SessionFactoryContext };
+
+/**
+ * Compare two dotted-version strings (e.g. "1.0.0" vs "1.2.3"). Returns
+ * 1 if a > b, -1 if a < b, 0 if equal. Non-numeric segments fall back to
+ * lexical comparison so a template author who writes `version: 1.0.0-rc1`
+ * still gets sensible ordering. Deliberately not pulling in semver — the
+ * field is convention, not contract; this is enough to drive a badge.
+ */
+function compareVersions(a: string, b: string): number {
+  const pa = a.split('.');
+  const pb = b.split('.');
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const sa = pa[i] ?? '0';
+    const sb = pb[i] ?? '0';
+    const na = Number(sa);
+    const nb = Number(sb);
+    if (Number.isFinite(na) && Number.isFinite(nb)) {
+      if (na !== nb) return na > nb ? 1 : -1;
+    } else {
+      if (sa !== sb) return sa > sb ? 1 : -1;
+    }
+  }
+  return 0;
+}

@@ -79,6 +79,30 @@ compose_persona_claude_md() {
   cp CLAUDE.md AGENTS.md
 }
 
+# copy_readme [template_root]
+# Copies $template_root/README.md into the current dir (the workspace root)
+# so the workspace is self-describing on disk. The instance README is the
+# agent's territory from this point on — body and frontmatter (including
+# `version:`) can both drift. The pristine template README stays in source
+# tree under $template_root and is what the showcase page renders.
+#
+# $template_root defaults to $AQ_TEMPLATE_ROOT (injected by the launcher).
+# No-op if no README.md exists at the template root — templates without a
+# README work fine, they just don't get a self-description file. That's a
+# soft convention, not a hard contract.
+copy_readme() {
+  local template_root="${1:-${AQ_TEMPLATE_ROOT:-}}"
+  if [[ -z "$template_root" ]]; then
+    echo "copy_readme: no template_root (set AQ_TEMPLATE_ROOT or pass arg)" >&2
+    return 0
+  fi
+  local src="$template_root/README.md"
+  if [[ ! -f "$src" ]]; then
+    return 0
+  fi
+  cp "$src" README.md
+}
+
 # setup_git_excludes [extra_path...]
 # Appends defensive entries to .git/info/exclude (per-clone, untracked).
 # Always includes:

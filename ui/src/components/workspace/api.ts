@@ -10,6 +10,26 @@ export interface Workspace {
   readonly dir: string;
   readonly createdAt: string;
   readonly template?: string;
+  /**
+   * The template version at the moment this workspace was spawned. Pinned
+   * once — system-written, never updated. Used to render lineage in the
+   * Overview card ("from {template} v{spawnedFromVersion}").
+   */
+  readonly spawnedFromVersion?: string;
+  /**
+   * The instance's currently self-reported version, read from
+   * `<workspace>/README.md` frontmatter on every list call. The agent can
+   * mutate this when self-upgrading. Falls back to `spawnedFromVersion`
+   * if the instance README is missing or has no version frontmatter.
+   */
+  readonly currentVersion?: string;
+  /**
+   * Set when the template (in source tree) is at a higher version than the
+   * instance currently self-claims. Informational only — clicking the
+   * badge jumps the user to the template's detail page; nothing in the
+   * launcher applies migrations. Agent self-upgrade is the resolution path.
+   */
+  readonly upgradeAvailable?: { from: string; to: string } | null;
   /** Adapter ids enabled for this workspace; agents[0] is the default for `+`. */
   readonly agents: readonly string[];
   /**
@@ -85,6 +105,10 @@ export interface TemplateInfo {
    *  a declared `groupOrder` sort after declared ones, by name. */
   readonly groupOrder?: number;
   readonly defaultAgents: readonly string[];
+  /** Template version, declared in README frontmatter. "0.0.0" when missing. */
+  readonly version: string;
+  /** True if the template ships a README.md (showcase detail page can load it). */
+  readonly hasReadme: boolean;
 }
 
 export async function listTemplates(): Promise<TemplateInfo[]> {
@@ -92,6 +116,34 @@ export async function listTemplates(): Promise<TemplateInfo[]> {
   if (!res.ok) throw new Error(`list templates failed: ${res.status}`);
   const body = (await res.json()) as { templates: TemplateInfo[] };
   return body.templates;
+}
+
+/**
+ * Fetch a template's raw README markdown. Strips YAML frontmatter before
+ * returning — frontmatter is metadata, not content the user should see.
+ * Returns null when the template has no README.
+ */
+export async function fetchTemplateReadme(name: string): Promise<string | null> {
+  const res = await fetch(`/api/workspaces/templates/${encodeURIComponent(name)}/readme`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`fetch readme failed: ${res.status}`);
+  const raw = await res.text();
+  return stripFrontmatter(raw);
+}
+
+/**
+ * Strip a leading YAML frontmatter block (`---` ... `---`) so the rendered
+ * README body doesn't show the metadata to the user. Conservative: only
+ * strips when frontmatter is at column 0; anything else passes through.
+ */
+function stripFrontmatter(raw: string): string {
+  const text = raw.replace(/^﻿/, '');
+  if (!text.startsWith('---')) return text;
+  const closeMatch = /^---\s*$/m.exec(text.slice(3));
+  if (!closeMatch || closeMatch.index === undefined) return text;
+  // Skip past the closing fence and any trailing newline.
+  const tailStart = 3 + closeMatch.index + closeMatch[0].length;
+  return text.slice(tailStart).replace(/^\r?\n/, '');
 }
 
 export interface AgentCapabilities {

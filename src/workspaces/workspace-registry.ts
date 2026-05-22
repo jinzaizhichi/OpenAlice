@@ -15,6 +15,16 @@ export interface WorkspaceMeta {
   /** Template that created this workspace. Optional for backward compatibility with pre-templates entries. */
   readonly template?: string;
   /**
+   * Immutable lineage: the template's `version` at the moment this workspace
+   * was spawned. Written once by the creator, never updated. Used by the
+   * Overview UI to display "from {template} v{spawnedFromVersion}" and as a
+   * fallback when the instance's own README is unreadable.
+   *
+   * Pre-version-tracking rows (loaded from older `workspaces.json`) are
+   * missing this field — treat as unknown rather than back-filling.
+   */
+  readonly spawnedFromVersion?: string;
+  /**
    * Adapter ids enabled in this workspace. Order is significant: the first
    * entry is the default for one-click spawns. Legacy rows (missing this
    * field) are normalized to `['claude']` at load time.
@@ -143,6 +153,12 @@ function validateFile(value: unknown): WorkspaceMeta[] {
       createdAt: e['createdAt'],
       agents: agents.length > 0 ? agents : ['claude'],
     };
-    return typeof e['template'] === 'string' ? { ...base, template: e['template'] } : base;
+    let withTemplate: WorkspaceMeta = typeof e['template'] === 'string'
+      ? { ...base, template: e['template'] }
+      : base;
+    if (typeof e['spawnedFromVersion'] === 'string') {
+      withTemplate = { ...withTemplate, spawnedFromVersion: e['spawnedFromVersion'] };
+    }
+    return withTemplate;
   });
 }

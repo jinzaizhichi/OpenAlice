@@ -108,6 +108,7 @@ export class WorkspaceCreator {
       {
         AQ_TEMPLATE_DIR: this.opts.bootstrapEnv.templateDir,
         AQ_TEMPLATE_FILES_DIR: template.filesDir,
+        AQ_TEMPLATE_ROOT: template.templateDir,
         AQ_LAUNCHER_REPO_ROOT: this.opts.bootstrapEnv.launcherRepoRoot,
         // AQ_LAUNCHER_ROOT is intentionally NOT set here. bootstrap.sh's
         // ${AQ_LAUNCHER_ROOT:-$HOME/.openalice/workspaces} default matches
@@ -155,6 +156,7 @@ export class WorkspaceCreator {
       dir,
       createdAt: new Date().toISOString(),
       template: templateName,
+      spawnedFromVersion: template.version,
       agents,
     };
     await this.opts.registry.add(workspace);

@@ -17,6 +17,8 @@ export type ViewSpec =
   | { kind: 'chat';           params: { channelId: string } }
   | { kind: 'workspace-list'; params: Record<string, never> }
   | { kind: 'workspace';      params: { wsId: string; sessionId?: string } }
+  | { kind: 'template-catalog'; params: Record<string, never> }
+  | { kind: 'template-detail';  params: { name: string } }
   | { kind: 'portfolio';      params: Record<string, never> }
   | { kind: 'automation';     params: { section: 'flow' | 'heartbeat' | 'cron' | 'webhook' } }
   | { kind: 'news';           params: Record<string, never> }

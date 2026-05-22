@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactElement } from 'react';
-import { Cpu, LayoutGrid, Sparkles, Terminal, type LucideIcon } from 'lucide-react';
+import { Cpu, LayoutGrid, Library, Sparkles, Terminal, type LucideIcon } from 'lucide-react';
 
 import {
   createWorkspace,
@@ -43,6 +43,10 @@ export interface SidebarProps {
   readonly onOpenOverview?: () => void;
   /** True when the Workspaces Overview tab is currently focused — highlights the pinned row. */
   readonly overviewActive?: boolean;
+  /** Open the Templates catalog tab (one card per workspace template). */
+  readonly onOpenTemplates?: () => void;
+  /** True when a Templates tab (catalog or detail) is currently focused. */
+  readonly templatesActive?: boolean;
 }
 
 export function Sidebar(props: SidebarProps): ReactElement {
@@ -191,6 +195,19 @@ export function Sidebar(props: SidebarProps): ReactElement {
             >
               <LayoutGrid size={13} strokeWidth={2.25} aria-hidden="true" />
               <span>Overview</span>
+            </button>
+          </li>
+        )}
+        {props.onOpenTemplates && (
+          <li className="sidebar-overview-row">
+            <button
+              type="button"
+              className={`sidebar-overview-btn${props.templatesActive ? ' is-active' : ''}`}
+              onClick={props.onOpenTemplates}
+              title="Browse workspace templates"
+            >
+              <Library size={13} strokeWidth={2.25} aria-hidden="true" />
+              <span>Templates</span>
             </button>
           </li>
         )}

@@ -45,6 +45,7 @@ WS_ID="$(extract_ws_id "$OUT_DIR")"
 
 write_mcp_config "$WS_ID" "$AQ_TEMPLATE_FILES_DIR"
 compose_persona_claude_md "$AQ_TEMPLATE_FILES_DIR"
+copy_readme
 
 git init -q
 # .finance-skills/ is the upstream clone; users shouldn't bake it into

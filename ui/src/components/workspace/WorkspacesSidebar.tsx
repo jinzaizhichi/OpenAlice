@@ -23,6 +23,8 @@ export function WorkspacesSidebar() {
       }
     : null
   const overviewActive = focused?.kind === 'workspace-list'
+  const templatesActive =
+    focused?.kind === 'template-catalog' || focused?.kind === 'template-detail'
 
   return (
     <div className="workspaces-root workspaces-sidebar-frame">
@@ -47,6 +49,8 @@ export function WorkspacesSidebar() {
         onConfigureWorkspace={(wsId) => ctx.openAgentConfig(wsId)}
         onOpenOverview={() => openOrFocus({ kind: 'workspace-list', params: {} })}
         overviewActive={overviewActive}
+        onOpenTemplates={() => openOrFocus({ kind: 'template-catalog', params: {} })}
+        templatesActive={templatesActive}
       />
     </div>
   )

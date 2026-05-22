@@ -178,6 +178,9 @@ export function WorkspaceListPage() {
                       })
                     }
                     onConfigure={() => openAgentConfig(w.id)}
+                    onOpenTemplate={(name) =>
+                      openOrFocus({ kind: 'template-detail', params: { name } })
+                    }
                   />
                 ))}
               </div>

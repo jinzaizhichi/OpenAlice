@@ -22,7 +22,7 @@ import type {
   UTAClient,
   UTASummary,
   AggregatedEquity,
-  ContractSearchResult,
+  ContractSearchHit,
 } from '@traderalice/uta-protocol'
 import type { ContractDescription, Contract, ContractDetails } from '@traderalice/ibkr'
 import type { ReconnectResult } from '../../core/types.js'
@@ -158,8 +158,10 @@ export class UTAManagerSDK {
   async searchContracts(
     pattern: string,
     _assetClass?: unknown,
-  ): Promise<ContractSearchResult[]> {
-    const res = await this.client.get<{ results: ContractSearchResult[] }>(
+  ): Promise<ContractSearchHit[]> {
+    // The route returns flat per-account hits ({ source, contract,
+    // derivativeSecTypes }), NOT the grouped ContractSearchResult shape.
+    const res = await this.client.get<{ results: ContractSearchHit[] }>(
       `/api/trading/contracts/search`,
       { pattern },
     )

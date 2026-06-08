@@ -44,6 +44,18 @@ function toBarInterval(interval: string): BarInterval {
     : '1d'
 }
 
+/** Map a broker secType to the data-vendor asset class (for candidate display
+ *  + later vendor-fallback routing). 'unknown' when it doesn't map cleanly. */
+function secTypeToAssetClass(secType: string | undefined): AssetClass | 'unknown' {
+  switch ((secType ?? '').toUpperCase()) {
+    case 'STK': case 'ETF': case 'WAR': return 'equity'
+    case 'CRYPTO': case 'CRYPTO_PERP': return 'crypto'
+    case 'CASH': return 'currency'
+    case 'FUT': case 'FOP': case 'CMDTY': return 'commodity'
+    default: return 'unknown'
+  }
+}
+
 // ---- window heuristics (legacy behavior-preserving; lifted from tool/analysis.ts) ----
 
 function getCalendarDays(interval: string): number {
@@ -194,22 +206,49 @@ export function createBarService(deps: BarServiceDeps): BarService {
   return {
     async searchBarSources(query, opts) {
       const limit = opts?.limit ?? 20
-      // Phase 0: vendor side only. UTA-source candidates + the
-      // ContractSearchResult wire-shape fix land in Phase 1 with CCXT.
-      const vendor = await aggregateSymbolSearch(deps.marketSearch, query, limit)
-      return vendor.map((r): BarSourceCandidate => {
-        const symbol = String(r.symbol ?? r.id ?? '')
-        const provider = deps.vendorProviders[r.assetClass]
-        return {
-          barId: formatBarId(provider, symbol),
-          source: 'vendor',
-          sourceId: provider,
-          symbol,
-          assetClass: r.assetClass,
-          label: r.name ? `${symbol} · ${r.name} (${provider})` : `${symbol} (${provider})`,
-          barCapability: VENDOR_CAPABILITY[provider],
+      // Federate vendor (OpenTypeBB) + broker (UTA) search. allSettled so one
+      // side failing (e.g. no UTA configured) doesn't kill the other. Flat
+      // candidates, no cross-source dedup — redundancy is the feature.
+      const [vendorRes, utaRes] = await Promise.allSettled([
+        aggregateSymbolSearch(deps.marketSearch, query, limit),
+        deps.utaManager.searchContracts(query),
+      ])
+      const out: BarSourceCandidate[] = []
+
+      if (vendorRes.status === 'fulfilled') {
+        for (const r of vendorRes.value) {
+          const symbol = String(r.symbol ?? r.id ?? '')
+          const provider = deps.vendorProviders[r.assetClass]
+          out.push({
+            barId: formatBarId(provider, symbol),
+            source: 'vendor',
+            sourceId: provider,
+            symbol,
+            assetClass: r.assetClass,
+            label: r.name ? `${symbol} · ${r.name} (${provider})` : `${symbol} (${provider})`,
+            barCapability: VENDOR_CAPABILITY[provider],
+          })
         }
-      })
+      }
+
+      if (utaRes.status === 'fulfilled') {
+        for (const hit of utaRes.value) {
+          const barId = hit.contract.aliceId
+          if (!barId) continue // need the operational identity to fetch later
+          const symbol = hit.contract.symbol || hit.contract.localSymbol || ''
+          out.push({
+            barId,
+            source: 'uta',
+            sourceId: hit.source,
+            symbol,
+            assetClass: secTypeToAssetClass(hit.contract.secType),
+            label: symbol ? `${symbol} (${hit.source})` : `${barId}`,
+            barCapability: 'realtime',
+          })
+        }
+      }
+
+      return out
     },
 
     async getBars(ref, opts) {

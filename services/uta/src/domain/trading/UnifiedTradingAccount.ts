@@ -9,7 +9,7 @@
 
 import Decimal from 'decimal.js'
 import { Contract, Order, ContractDescription, ContractDetails, UNSET_DECIMAL } from '@traderalice/ibkr'
-import { BrokerError, type IBroker, type AccountInfo, type Position, type OpenOrder, type PlaceOrderResult, type Quote, type MarketClock, type AccountCapabilities, type BrokerHealth, type BrokerHealthInfo, type TpSlParams } from './brokers/types.js'
+import { BrokerError, type IBroker, type AccountInfo, type Position, type OpenOrder, type PlaceOrderResult, type Quote, type MarketClock, type AccountCapabilities, type BrokerHealth, type BrokerHealthInfo, type TpSlParams, type Bar, type BarParams } from './brokers/types.js'
 import { TradingGit } from './git/TradingGit.js'
 import { recomputeCostBasisFromCommits } from './cost-basis.js'
 import { pnlOf } from './position-math.js'
@@ -599,6 +599,20 @@ export class UnifiedTradingAccount {
     const quote = await this._callBroker(() => this.broker.getQuote(resolved))
     this.stampAliceId(quote.contract)
     return quote
+  }
+
+  /**
+   * Historical OHLCV bars. Loud-refuses (CONFIG error, not a silent `[]`) when
+   * the broker has no `getHistorical`. Expands an aliceId-only stub to a
+   * trade-ready contract first, same as getQuote. Bars carry no contract, so
+   * there is no return-side aliceId stamping — the caller already holds it.
+   */
+  async getHistorical(contract: Contract, params: BarParams): Promise<Bar[]> {
+    if (typeof this.broker.getHistorical !== 'function') {
+      throw new BrokerError('CONFIG', `Account "${this.label}" does not support historical bars.`)
+    }
+    const resolved = this._expandAliceIdIfNeeded(contract)
+    return this._callBroker(() => this.broker.getHistorical!(resolved, params))
   }
 
   getMarketClock(): Promise<MarketClock> {

@@ -17,7 +17,7 @@
  * structurally-identical `OhlcvData`/`DataSourceMeta` for free.
  */
 
-import type { Bar, BarParams } from '@traderalice/uta-protocol'
+import type { Bar, BarParams, ContractSearchHit } from '@traderalice/uta-protocol'
 import type { AssetClass, MarketSearchDeps } from '../aggregate-search.js'
 import type {
   EquityClientLike,
@@ -128,6 +128,8 @@ export interface UtaBarAccount {
 export interface UtaBarGateway {
   has(id: string): Promise<boolean>
   get(id: string): Promise<UtaBarAccount | undefined>
+  /** Flat contract-search hits across all accounts (for searchBarSources). */
+  searchContracts(pattern: string): Promise<ContractSearchHit[]>
 }
 
 export interface BarServiceDeps {

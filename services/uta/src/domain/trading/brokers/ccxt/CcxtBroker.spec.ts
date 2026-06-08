@@ -32,6 +32,8 @@ vi.mock('ccxt', () => {
     this.fetchClosedOrder = vi.fn()
     this.fetchFundingRate = vi.fn()
     this.fetchOrderBook = vi.fn()
+    this.fetchOHLCV = vi.fn()
+    this.timeframes = { '1m': '1m', '5m': '5m', '15m': '15m', '30m': '30m', '1h': '1h', '4h': '4h', '1d': '1d', '1w': '1w' }
   })
 
   return {
@@ -1213,6 +1215,45 @@ describe('CcxtBroker — getQuote', () => {
     contract.localSymbol = 'NONEXISTENT/USDT'
 
     await expect(acc.getQuote(contract)).rejects.toThrow('Cannot resolve contract')
+  })
+})
+
+// ==================== getHistorical ====================
+
+describe('CcxtBroker — getHistorical', () => {
+  it('maps ccxt OHLCV rows to string-typed bars', async () => {
+    const acc = makeAccount()
+    setInitialized(acc, { 'BTC/USDT:USDT': makeSwapMarket('BTC', 'USDT', 'BTC/USDT:USDT') })
+    ;(acc as any).exchange.fetchOHLCV = vi.fn().mockResolvedValue([
+      [1700000000000, 60000, 61000, 59000, 60500, 1234.5],
+      [1700086400000, 60500, 62000, 60000, 61800, 2000],
+    ])
+    const contract = new Contract()
+    contract.localSymbol = 'BTC/USDT:USDT'
+
+    const bars = await acc.getHistorical(contract, { interval: '1d', limit: 2 })
+    expect(bars).toEqual([
+      { timestamp: new Date(1700000000000), open: '60000', high: '61000', low: '59000', close: '60500', volume: '1234.5' },
+      { timestamp: new Date(1700086400000), open: '60500', high: '62000', low: '60000', close: '61800', volume: '2000' },
+    ])
+    expect((acc as any).exchange.fetchOHLCV).toHaveBeenCalledWith('BTC/USDT:USDT', '1d', undefined, 2)
+  })
+
+  it('loud-refuses an interval the exchange does not support', async () => {
+    const acc = makeAccount()
+    setInitialized(acc, { 'BTC/USDT:USDT': makeSwapMarket('BTC', 'USDT', 'BTC/USDT:USDT') })
+    ;(acc as any).exchange.timeframes = { '1d': '1d' } // no 5m
+    const contract = new Contract()
+    contract.localSymbol = 'BTC/USDT:USDT'
+    await expect(acc.getHistorical(contract, { interval: '5m' })).rejects.toThrow(/does not support/)
+  })
+
+  it('throws when contract cannot be resolved', async () => {
+    const acc = makeAccount()
+    setInitialized(acc, {})
+    const contract = new Contract()
+    contract.localSymbol = 'NONE/USDT'
+    await expect(acc.getHistorical(contract, { interval: '1d' })).rejects.toThrow('Cannot resolve contract')
   })
 })
 

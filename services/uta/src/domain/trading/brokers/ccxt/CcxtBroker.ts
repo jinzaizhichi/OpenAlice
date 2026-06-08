@@ -23,6 +23,8 @@ import {
   type MarketClock,
   type BrokerConfigField,
   type TpSlParams,
+  type Bar,
+  type BarParams,
 } from '../types.js'
 import '../../contract-ext.js'
 import { aggregateAccountFromPositions } from '../../position-math.js'
@@ -35,6 +37,7 @@ import {
   makeOrderState,
   marketToContract,
   contractToCcxt,
+  CCXT_TIMEFRAME,
 } from './ccxt-contracts.js'
 import { fuzzyRankContracts } from '../fuzzy-rank.js'
 import {
@@ -881,12 +884,40 @@ export class CcxtBroker implements IBroker<CcxtBrokerMeta> {
     }
   }
 
+  /**
+   * Historical OHLCV via ccxt `fetchOHLCV`. Free public endpoint on most
+   * exchanges (realtime quality, no entitlement tier). Validates the interval
+   * against the exchange's actual `timeframes` and loud-refuses if unsupported.
+   */
+  async getHistorical(contract: Contract, params: BarParams): Promise<Bar[]> {
+    this.ensureInit()
+    const ccxtSymbol = contractToCcxt(contract, this.markets, this.exchangeName)
+    if (!ccxtSymbol) throw new BrokerError('EXCHANGE', 'Cannot resolve contract to CCXT symbol')
+    const timeframe = CCXT_TIMEFRAME[params.interval]
+    const supported = this.exchange.timeframes as Record<string, unknown> | undefined
+    if (supported && !(timeframe in supported)) {
+      throw new BrokerError('EXCHANGE', `${this.exchangeName} does not support the ${params.interval} interval`)
+    }
+    try {
+      const since = params.start ? params.start.getTime() : undefined
+      const rows = await this.exchange.fetchOHLCV(ccxtSymbol, timeframe, since, params.limit)
+      return (rows as number[][]).map(([ts, o, h, l, c, v]) => ({
+        timestamp: new Date(ts),
+        open: String(o), high: String(h), low: String(l), close: String(c),
+        volume: String(v ?? 0),
+      }))
+    } catch (err) {
+      throw BrokerError.from(err)
+    }
+  }
+
   // ---- Capabilities ----
 
   getCapabilities(): AccountCapabilities {
     return {
       supportedSecTypes: ['CRYPTO', 'CRYPTO_PERP'],
       supportedOrderTypes: ['MKT', 'LMT'],
+      historicalBars: { supported: true, quality: 'realtime' },
     }
   }
 

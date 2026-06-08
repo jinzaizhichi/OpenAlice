@@ -34,7 +34,7 @@ function makeDeps(over: Partial<BarServiceDeps> = {}): BarServiceDeps {
     cryptoClient: { getHistorical: cryptoHist } as unknown as CryptoClientLike,
     currencyClient: { getHistorical: currencyHist } as unknown as CurrencyClientLike,
     commodityClient: { getSpotPrices: commoditySpot } as unknown as CommodityClientLike,
-    utaManager: { has: async () => false, get: async () => undefined },
+    utaManager: { has: async () => false, get: async () => undefined, searchContracts: async () => [] },
     vendorProviders: { equity: 'yfinance', crypto: 'yfinance', currency: 'yfinance', commodity: 'yfinance' },
     ...over,
   }
@@ -125,6 +125,7 @@ describe('getBars — UTA branch', () => {
     const utaManager: UtaBarGateway = {
       has: async (id) => id === 'alpaca-paper',
       get: async () => ({ getHistorical }),
+      searchContracts: async () => [],
     }
     const svc = createBarService(makeDeps({ utaManager }))
     const { bars, meta } = await svc.getBars({ barId: 'alpaca-paper|AAPL' }, { interval: '1d' })
@@ -137,7 +138,7 @@ describe('getBars — UTA branch', () => {
   })
 })
 
-describe('searchBarSources — vendor candidates', () => {
+describe('searchBarSources — federated candidates', () => {
   it('maps vendor results to barId-tagged candidates', async () => {
     const svc = createBarService(makeDeps())
     const out = await svc.searchBarSources('AAPL')
@@ -145,5 +146,37 @@ describe('searchBarSources — vendor candidates', () => {
       barId: 'yfinance|AAPL', source: 'vendor', sourceId: 'yfinance', symbol: 'AAPL', assetClass: 'equity',
     })
     expect(out[0].label).toContain('AAPL')
+  })
+
+  it('unions UTA broker hits (barId = aliceId, secType → assetClass)', async () => {
+    const utaManager = {
+      has: async () => true,
+      get: async () => undefined,
+      searchContracts: async () => [
+        { source: 'alpaca-paper', contract: { aliceId: 'alpaca-paper|AAPL', symbol: 'AAPL', secType: 'STK' }, derivativeSecTypes: [] },
+        { source: 'bybit-main', contract: { aliceId: 'bybit-main|BTC/USDT:USDT', symbol: 'BTC', secType: 'CRYPTO' }, derivativeSecTypes: [] },
+      ],
+    } as never
+    const svc = createBarService(makeDeps({ utaManager }))
+    const out = await svc.searchBarSources('AAPL')
+    const uta = out.filter((c) => c.source === 'uta')
+    expect(uta).toEqual([
+      expect.objectContaining({ barId: 'alpaca-paper|AAPL', sourceId: 'alpaca-paper', symbol: 'AAPL', assetClass: 'equity', barCapability: 'realtime' }),
+      expect.objectContaining({ barId: 'bybit-main|BTC/USDT:USDT', sourceId: 'bybit-main', symbol: 'BTC', assetClass: 'crypto', barCapability: 'realtime' }),
+    ])
+    // vendor side still present (redundancy)
+    expect(out.some((c) => c.source === 'vendor')).toBe(true)
+  })
+
+  it('survives one side failing (vendor still returns if UTA throws)', async () => {
+    const utaManager = {
+      has: async () => true,
+      get: async () => undefined,
+      searchContracts: async () => { throw new Error('uta down') },
+    } as never
+    const svc = createBarService(makeDeps({ utaManager }))
+    const out = await svc.searchBarSources('AAPL')
+    expect(out.some((c) => c.source === 'vendor')).toBe(true)
+    expect(out.some((c) => c.source === 'uta')).toBe(false)
   })
 })

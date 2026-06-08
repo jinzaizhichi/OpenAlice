@@ -24,7 +24,7 @@ function build(provider: string, creds: Record<string, string>): BarService {
   return createBarService({
     marketSearch: { symbolIndex: {} as never, cryptoClient, currencyClient, commodityCatalog: {} as never },
     equityClient, cryptoClient, currencyClient, commodityClient,
-    utaManager: { has: async () => false, get: async () => undefined },
+    utaManager: { has: async () => false, get: async () => undefined, searchContracts: async () => [] },
     vendorProviders: { equity: provider, crypto: provider, currency: provider, commodity: provider },
   })
 }

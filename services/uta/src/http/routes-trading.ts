@@ -308,6 +308,26 @@ export function createTradingRoutes(ctx: UTAEngineContext) {
     }
   })
 
+  // Historical OHLCV bars. Body: { contract: <Contract|{aliceId}>, params: BarParams }.
+  // start/end arrive as ISO strings over the wire — revive to Date (the only
+  // Date fields in BarParams) before the broker call.
+  app.post('/uta/:id/historical', async (c) => {
+    const account = resolveAccount(ctx, c)
+    if (!account) return c.json({ error: 'Account not found' }, 404)
+    try {
+      const body = await c.req.json().catch(() => ({}))
+      const { Contract } = await import('@traderalice/ibkr')
+      const contract = Object.assign(new Contract(), body.contract ?? body)
+      const params = { ...(body.params ?? {}) }
+      if (params.start) params.start = new Date(params.start)
+      if (params.end) params.end = new Date(params.end)
+      const bars = await account.getHistorical(contract, params)
+      return c.json({ bars })
+    } catch (err) {
+      return c.json({ error: err instanceof Error ? err.message : String(err) }, 500)
+    }
+  })
+
   // Contract details — drilldown after a search hit. Body shape is a
   // `Contract` subset; when `aliceId` is present, `getContractDetails`
   // expands it internally via the broker's native-key decoder.

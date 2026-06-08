@@ -13,19 +13,16 @@
  * data-vendor identity (that's structurally a different namespace).
  */
 
-import type { ContractDescription } from '@traderalice/ibkr'
 import type { UTAManager } from './uta-manager.js'
 import {
   normalizeBrokerSearchPattern,
   type AssetClassHint,
 } from './contract-search-rules.js'
 
-export interface ContractSearchHit {
-  /** UTA account id that the contract lives on (e.g. "alpaca-paper"). */
-  source: string
-  contract: ContractDescription['contract']
-  derivativeSecTypes: string[]
-}
+// Canonical wire shape lives in the shared protocol package so Alice's SDK
+// types against the same thing this route returns.
+export type { ContractSearchHit } from '@traderalice/uta-protocol'
+import type { ContractSearchHit } from '@traderalice/uta-protocol'
 
 export async function searchTradeableContracts(
   manager: UTAManager,

@@ -20,6 +20,19 @@ import {
   type AgentId,
   type SavedCredential,
 } from './api'
+import { api, type Preset } from '../../api'
+import { baseUrlToVendor, vendorPreset, presetModels } from '../../lib/presetHelpers'
+import { ModelCombobox } from '../credentials/PresetFields'
+
+// The agent tab implies a default vendor when the baseUrl alone can't say:
+// claude → Anthropic, codex → OpenAI; opencode/pi run anything so they have no
+// default (model suggestions then come only from a recognized baseUrl).
+const TAB_FALLBACK_VENDOR: Record<Tab, string | null> = {
+  claude: 'anthropic',
+  codex: 'openai',
+  opencode: null,
+  pi: null,
+}
 
 interface Props {
   wsId: string
@@ -124,6 +137,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose }: Props) {
   const [codexResult, setCodexResult] = useState<TestResult | null>(null)
   const [opencodeResult, setOpencodeResult] = useState<TestResult | null>(null)
   const [piResult, setPiResult] = useState<TestResult | null>(null)
+  const [presets, setPresets] = useState<Preset[]>([])
 
   useEffect(() => {
     void Promise.all([listCredentials(), getAgentConfig(wsId)])
@@ -136,10 +150,23 @@ export function WorkspaceAIConfigModal({ wsId, onClose }: Props) {
         setPiForm(configToForm(b.pi))
       })
       .catch((err: Error) => setError(err.message))
+    // Presets drive the model-id suggestions (anti-typo) — load once.
+    void api.config.getPresets().then(({ presets: p }) => setPresets(p)).catch(() => {})
   }, [wsId])
 
   const form = { claude: claudeForm, codex: codexForm, opencode: opencodeForm, pi: piForm }[tab]
   const setForm = { claude: setClaudeForm, codex: setCodexForm, opencode: setOpencodeForm, pi: setPiForm }[tab]
+  // Model-id suggestions for the current field: infer the provider vendor from
+  // the entered baseUrl (api.z.ai → glm, …) with the tab as fallback, then pull
+  // that vendor's enumerated models. Empty for custom/local endpoints → the
+  // combobox is just a free-text input. This is vendor-axis, not agent-axis, so
+  // it works when any tab is pointed at any gateway.
+  const modelSuggestions = useMemo(() => {
+    const vendor = baseUrlToVendor(form.baseUrl, TAB_FALLBACK_VENDOR[tab])
+    if (!vendor) return []
+    const p = vendorPreset(vendor, presets)
+    return p ? presetModels(p) : []
+  }, [form.baseUrl, tab, presets])
   const result = { claude: claudeResult, codex: codexResult, opencode: opencodeResult, pi: piResult }[tab]
   const setResult = { claude: setClaudeResult, codex: setCodexResult, opencode: setOpencodeResult, pi: setPiResult }[tab]
   const resultMatchesCurrent = !!result && formsMatch(result.snapshot, form, tab)
@@ -420,15 +447,15 @@ export function WorkspaceAIConfigModal({ wsId, onClose }: Props) {
 
           <div>
             <label className="block text-xs font-medium text-text-muted mb-1">Model</label>
-            <input
+            <ModelCombobox
               value={form.model}
-              onChange={(e) => setForm({ ...form, model: e.target.value })}
+              suggestions={modelSuggestions}
+              onChange={(v) => setForm({ ...form, model: v })}
               placeholder={tab === 'claude' ? 'claude-sonnet-4-6' : tab === 'opencode' || tab === 'pi' ? 'deepseek-chat' : 'gpt-4o'}
-              className={inputClass}
-              spellCheck={false}
-              autoCapitalize="off"
-              autoCorrect="off"
             />
+            {modelSuggestions.length > 0 && (
+              <p className="text-[11px] text-text-muted/70 mt-1">Suggestions from the matched provider — or type any model id.</p>
+            )}
           </div>
 
           {tab === 'codex' && (

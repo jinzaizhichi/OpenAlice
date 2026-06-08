@@ -20,60 +20,11 @@ import type { CredentialSummary } from '../api/config'
 import { PageHeader } from '../components/PageHeader'
 import { PageLoading } from '../components/StateViews'
 import { Field, inputClass } from '../components/form'
-
-// ==================== Preset helpers ====================
-
-/** Vendor tag stored on the credential, by preset id. */
-const VENDOR_BY_PRESET: Record<string, string> = {
-  'claude-api': 'anthropic',
-  'codex-api': 'openai',
-  gemini: 'google',
-  minimax: 'minimax',
-  glm: 'glm',
-  kimi: 'kimi',
-  deepseek: 'deepseek',
-  custom: 'custom',
-}
-
-function schemaProps(schema: Preset['schema']): Record<string, Record<string, unknown>> {
-  return (schema?.properties as Record<string, Record<string, unknown>>) ?? {}
-}
-
-/** Only api-key presets belong in the vault — oauth/subscription presets log in via the CLI. */
-function isApiKeyPreset(p: Preset): boolean {
-  return 'apiKey' in schemaProps(p.schema)
-}
-
-/** Request shape for the probe: agent-sdk backend → anthropic, everything else → openai. */
-function presetShape(p: Preset): 'anthropic' | 'openai' {
-  const backend = (schemaProps(p.schema)['backend'] as { const?: string } | undefined)?.const
-  return backend === 'agent-sdk' ? 'anthropic' : 'openai'
-}
-
-/** Codex speaks the Responses API; openai-compatible gateways speak Chat Completions. */
-function presetWireApi(p: Preset): 'chat' | 'responses' {
-  return p.id.startsWith('codex') ? 'responses' : 'chat'
-}
-
-function presetModels(p: Preset): Array<{ id: string; label: string }> {
-  const oneOf = (schemaProps(p.schema)['model'] as { oneOf?: Array<{ const: string; title: string }> } | undefined)?.oneOf
-  return oneOf ? oneOf.map((o) => ({ id: o.const, label: o.title })) : []
-}
-
-/** Suggested base URL from the preset (default, or first declared endpoint). */
-function presetBaseUrl(p: Preset): string {
-  const field = schemaProps(p.schema)['baseUrl'] as
-    | { default?: string; oneOf?: Array<{ const: string }> }
-    | undefined
-  if (typeof field?.default === 'string') return field.default
-  if (field?.oneOf?.[0]?.const) return field.oneOf[0].const
-  return ''
-}
-
-function vendorPreset(vendor: string, presets: Preset[]): Preset | undefined {
-  const presetId = Object.entries(VENDOR_BY_PRESET).find(([, v]) => v === vendor)?.[0]
-  return presets.find((p) => p.id === presetId) ?? presets.find((p) => p.id === 'custom')
-}
+import { EndpointField, ModelCombobox } from '../components/credentials/PresetFields'
+import {
+  VENDOR_BY_PRESET, isApiKeyPreset, presetShape, presetWireApi,
+  presetModels, presetEndpoints, presetBaseUrlDefault, vendorPreset,
+} from '../lib/presetHelpers'
 
 // ==================== Agent runtimes ====================
 //
@@ -94,9 +45,8 @@ const AGENT_RUNTIMES: RuntimeInfo[] = [
     name: 'Claude Code',
     blurb: "Anthropic's coding-agent CLI — the deepest agentic loop.",
     facts: [
+      ['Models', 'Claude (Anthropic). Anthropic-compatible gateways — GLM, MiniMax, Kimi, DeepSeek — via base URL + auth header'],
       ['Auth', 'Claude Pro/Max subscription (claude login) or an Anthropic API key'],
-      ['Wire', 'Anthropic Messages API; anthropic-compatible gateways via base URL + auth header (x-api-key / Bearer)'],
-      ['Tools', 'Native MCP — full OpenAlice tool surface'],
     ],
   },
   {
@@ -104,30 +54,26 @@ const AGENT_RUNTIMES: RuntimeInfo[] = [
     name: 'Codex',
     blurb: "OpenAI's coding-agent CLI.",
     facts: [
+      ['Models', 'OpenAI (GPT). Responses API only — Chat-only providers need a Responses proxy (OpenRouter / VibeAround)'],
       ['Auth', 'ChatGPT subscription (codex login) or an OpenAI API key'],
-      ['Wire', 'OpenAI Responses API — rejects Chat Completions; Chat-only providers need a Responses proxy (OpenRouter / VibeAround)'],
-      ['Tools', 'CLI-mode (the alice CLI on PATH); MCP off in headless'],
     ],
   },
   {
     id: 'opencode',
     name: 'opencode',
-    blurb: 'Provider-agnostic open-source agent CLI.',
+    blurb: 'Provider-agnostic open-source agent CLI (AI SDK + Models.dev, 75+ providers).',
     facts: [
-      ['Auth', 'API key against any OpenAI-compatible endpoint'],
-      ['Wire', 'OpenAI Chat Completions (@ai-sdk/openai-compatible)'],
-      ['Tools', 'MCP via opencode.json'],
-      ['Good for', 'Chat-only providers (DeepSeek, Qwen, Kimi, GLM, MiniMax) and local runtimes — connects directly, no proxy'],
+      ['Models', 'Anthropic, OpenAI, Google, OpenRouter, Bedrock/Azure, and anything OpenAI-compatible — incl. local (Ollama, vLLM, LM Studio)'],
+      ['Auth', 'Per-provider API key (Claude Pro/Max isn’t sanctioned in opencode — API billing only for Claude models)'],
     ],
   },
   {
     id: 'pi',
     name: 'Pi',
-    blurb: 'Lightweight open-source agent CLI.',
+    blurb: 'Minimal open-source agent CLI (earendil-works/pi) — unified multi-provider API.',
     facts: [
-      ['Auth', 'API key against any OpenAI-compatible endpoint'],
-      ['Wire', 'OpenAI Chat Completions'],
-      ['Tools', 'No native MCP — reaches OpenAlice through the alice CLI bridge'],
+      ['Models', 'OpenAI, Anthropic, Google + custom (Ollama, vLLM, LM Studio, proxies); OpenAI-compatible and anthropic-messages wires'],
+      ['Auth', 'Per-provider API key'],
     ],
   },
 ]
@@ -238,9 +184,11 @@ export function AIProviderPage() {
           <section>
             <div className="rounded-lg border border-border/50 bg-bg-secondary/50 px-4 py-3 mb-4">
               <p className="text-[13px] text-text-muted leading-relaxed">
-                The agent runtimes a workspace can launch. A credential above feeds whichever
-                one a workspace (or cron job) runs — pick the runtime that fits your provider's
-                wire shape. The model is chosen per workspace, not here.
+                The agent runtimes a workspace can launch — a credential above feeds whichever
+                one a workspace (or cron job) runs. Pick by the models/provider you want; every
+                runtime reaches the full OpenAlice tool surface either way (native MCP where
+                supported, the <code className="font-mono text-[11.5px]">alice</code> CLI on PATH
+                otherwise). The model is chosen per workspace, not here.
               </p>
             </div>
 
@@ -306,7 +254,7 @@ function CredentialModal({ mode, cred, presets, onClose, onSaved }: {
   // When a preset is chosen (add mode), seed baseUrl + the test model.
   const pickPreset = (p: Preset) => {
     setPreset(p)
-    setBaseUrl(presetBaseUrl(p))
+    setBaseUrl(presetBaseUrlDefault(p))
     setModel(presetModels(p)[0]?.id ?? '')
     setTestResult(null)
     setError('')
@@ -395,9 +343,8 @@ function CredentialModal({ mode, cred, presets, onClose, onSaved }: {
                 <p className="text-[11px] text-text-muted bg-bg-tertiary rounded-lg p-3 leading-relaxed">{preset.hint}</p>
               )}
 
-              <Field label="Base URL (optional)">
-                <input className={inputClass} value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)}
-                  placeholder="leave empty for the official endpoint" spellCheck={false} autoCapitalize="off" autoCorrect="off" />
+              <Field label={presetEndpoints(preset).length > 0 ? 'Endpoint / region' : 'Base URL (optional)'}>
+                <EndpointField value={baseUrl} endpoints={presetEndpoints(preset)} onChange={setBaseUrl} />
               </Field>
 
               <Field label="API key">
@@ -407,13 +354,7 @@ function CredentialModal({ mode, cred, presets, onClose, onSaved }: {
               </Field>
 
               <Field label="Test model" description="Used only to verify the key — not stored on the credential.">
-                {models.length > 0 ? (
-                  <select className={inputClass} value={model} onChange={(e) => setModel(e.target.value)}>
-                    {models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-                  </select>
-                ) : (
-                  <input className={inputClass} value={model} onChange={(e) => setModel(e.target.value)} placeholder="model id" />
-                )}
+                <ModelCombobox value={model} suggestions={models} onChange={setModel} />
               </Field>
 
               {error && <p className="text-[12px] text-red">{error}</p>}

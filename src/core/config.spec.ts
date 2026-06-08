@@ -358,6 +358,19 @@ describe('credentialSchema', () => {
   it('rejects unknown vendor', () => {
     expect(() => credentialSchema.parse({ vendor: 'fake', authType: 'api-key' })).toThrow()
   })
+
+  it('normalizes empty / whitespace baseUrl to undefined (dedup invariant)', () => {
+    // The dedup predicate compares baseUrl with ===, so '' must collapse to
+    // undefined or a default-endpoint cred would duplicate. See
+    // feedback_optional_empty_string.
+    expect(credentialSchema.parse({ vendor: 'glm', authType: 'api-key', apiKey: 'k', baseUrl: '' }).baseUrl).toBeUndefined()
+    expect(credentialSchema.parse({ vendor: 'glm', authType: 'api-key', apiKey: 'k', baseUrl: '   ' }).baseUrl).toBeUndefined()
+  })
+
+  it('trims and keeps a real baseUrl (region stays distinct)', () => {
+    expect(credentialSchema.parse({ vendor: 'glm', authType: 'api-key', apiKey: 'k', baseUrl: '  https://api.z.ai/api/anthropic ' }).baseUrl)
+      .toBe('https://api.z.ai/api/anthropic')
+  })
 })
 
 // ==================== resolveProfile (with credential join) ====================

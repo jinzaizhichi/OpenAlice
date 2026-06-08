@@ -64,8 +64,15 @@ export const credentialSchema = z.object({
   authType: credentialAuthTypeEnum,
   /** Present for api-key credentials; absent for subscription credentials. */
   apiKey: z.string().optional(),
-  /** Optional region / custom endpoint. */
-  baseUrl: z.string().optional(),
+  /**
+   * Optional region / custom endpoint. Normalized at the schema so an empty
+   * string collapses to `undefined` — the dedup predicate compares baseUrl with
+   * `===`, so an un-normalized `''` would fail to match the `undefined` form and
+   * duplicate one logical credential. (LLM/CLI callers emit `""` for unset
+   * fields — see feedback_optional_empty_string.) Enforced here, not only at
+   * call sites, since `.parse()` runs inside add/writeCredential.
+   */
+  baseUrl: z.string().trim().transform((s) => s || undefined).optional(),
 })
 export type Credential = z.infer<typeof credentialSchema>
 
@@ -877,7 +884,9 @@ export function extractCredentialFromProfile(
   const authType = inferAuthTypeFromProfile(profile)
   const cred: Credential = { vendor, authType }
   if (profile.apiKey) cred.apiKey = profile.apiKey
-  if (profile.baseUrl) cred.baseUrl = profile.baseUrl
+  // Trim before assigning so the dedup compare below (and against already-trimmed
+  // stored creds) holds — this hand-built cred isn't run through credentialSchema.
+  if (profile.baseUrl?.trim()) cred.baseUrl = profile.baseUrl.trim()
 
   // Dedupe against existing — same vendor/auth/apiKey/baseUrl reuses the slug
   const match = Object.entries(existing).find(([, c]) =>

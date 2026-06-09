@@ -27,7 +27,6 @@ import { OpenBBCurrencyClient } from './domain/market-data/client/openbb-api/cur
 import { OpenBBCommodityClient } from './domain/market-data/client/openbb-api/commodity-client.js'
 import { OpenBBEconomyClient } from './domain/market-data/client/openbb-api/economy-client.js'
 import { createMarketSearchTools } from './tool/market.js'
-import { createAnalysisTools } from './tool/analysis.js'
 import { createQuantTools } from './tool/quant.js'
 import { createBarService } from './domain/market-data/bars/index.js'
 import { createSectorRotationTools } from './tool/sector-rotation.js'
@@ -204,7 +203,9 @@ async function main() {
   if (config.news.enabled) {
     toolCenter.register(createNewsArchiveTools(newsStore), 'news')
   }
-  toolCenter.register(createAnalysisTools(barService), 'analysis')
+  // v1 calculateIndicator (createAnalysisTools) is retired from the tool surface
+  // — calculateQuant (v2, barId-keyed) supersedes it and the two descriptions
+  // confused the model / bloated context. The code remains for now.
   toolCenter.register(createQuantTools({ barService }), 'quant')
   toolCenter.register(createSectorRotationTools(equityClient), 'sector-rotation')
   toolCenter.register(createEconomyTools(economyClient, commodityClient), 'economy')

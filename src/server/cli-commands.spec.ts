@@ -11,7 +11,6 @@ import { createNewsArchiveTools } from '../tool/news.js'
 import { createMarketSearchTools } from '../tool/market.js'
 import { createEquityTools } from '../tool/equity.js'
 import { createEconomyTools } from '../tool/economy.js'
-import { createAnalysisTools } from '../tool/analysis.js'
 import { createQuantTools } from '../tool/quant.js'
 import { createThinkingTools } from '../tool/thinking.js'
 import { inboxPushFactory } from '../tool/inbox-push.js'
@@ -32,7 +31,6 @@ describe('CLI_EXPORTS — data export (global tools)', () => {
   tc.register(createMarketSearchTools(any), 'market-search')
   tc.register(createEquityTools(any), 'equity')
   tc.register(createNewsArchiveTools(any), 'news')
-  tc.register(createAnalysisTools(any), 'analysis')
   tc.register(createQuantTools(any), 'quant')
   tc.register(createEconomyTools(any, any), 'economy')
 

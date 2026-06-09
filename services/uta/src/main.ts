@@ -75,7 +75,15 @@ async function main(): Promise<void> {
 
   for (const accCfg of [...dataUTAs, ...survivors]) {
     if (accCfg.enabled === false) continue
-    await utaManager.initUTA(accCfg)
+    // One account's init must never abort the whole bootstrap (broker
+    // construction is sync; the connection is async + health-tracked, so this
+    // only guards genuinely-broken config — but a built-in data UTA throwing
+    // would otherwise take the user's real UTAs down with it).
+    try {
+      await utaManager.initUTA(accCfg)
+    } catch (err) {
+      console.warn(`[uta] failed to init "${accCfg.id}": ${err instanceof Error ? err.message : String(err)}`)
+    }
   }
   utaManager.registerCcxtToolsIfNeeded()
 

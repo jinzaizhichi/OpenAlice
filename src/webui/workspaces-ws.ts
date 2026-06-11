@@ -169,8 +169,8 @@ function isOriginAllowed(req: IncomingMessage, svc: WorkspaceService): boolean {
  * IP, a domain) works without configuration. A browser's Origin is not
  * forgeable from a foreign page, so this admits exactly the pages we
  * served ourselves. The static allowlist covers cross-origin topologies
- * (Vite dev on 5173, future cloud demo) and stays env-extensible via
- * WEB_TERMINAL_ALLOWED_ORIGINS.
+ * (the Vite dev port — Guardian-resolved, 5173 by default — and the future
+ * cloud demo) and stays env-extensible via WEB_TERMINAL_ALLOWED_ORIGINS.
  */
 export function isWsOriginAllowed(
   origin: string | undefined,

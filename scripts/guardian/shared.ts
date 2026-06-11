@@ -28,6 +28,8 @@ export interface GuardianPorts {
   webPort: number
   mcpPort: number
   utaPort: number
+  /** Vite dev-server port — resolved by Guardian (dev only; prod has no Vite). */
+  uiPort: number
 }
 
 // ── Port configuration (L1 → L2) ────────────────────────────
@@ -36,7 +38,7 @@ export interface GuardianPorts {
 // them into the children via env (see memory:port-architecture-3-layers).
 // User-facing configuration lives in L1 — `data/config/ports.json`:
 //
-//   { "web": 47331, "mcp": 47332, "uta": 47333 }   (all keys optional)
+//   { "web": 47331, "mcp": 47332, "uta": 47333, "ui": 5173 }   (all keys optional)
 //
 // Deliberately a data/config file and NOT a dotenv file: the data dir is the
 // one location every topology agrees on (dev repo, docker volume, Electron
@@ -48,7 +50,7 @@ export interface GuardianPorts {
 // drifting off a value the user pinned would be worse than aborting. Only
 // unconfigured ports keep the probe-upward-from-default behavior.
 
-const PORT_DEFAULTS = { web: 47331, mcp: 47332, uta: 47333 } as const
+const PORT_DEFAULTS = { web: 47331, mcp: 47332, uta: 47333, ui: 5173 } as const
 
 export type PortName = keyof typeof PORT_DEFAULTS
 
@@ -64,6 +66,7 @@ const ENV_KEYS: Record<PortName, string> = {
   web: 'OPENALICE_WEB_PORT',
   mcp: 'OPENALICE_MCP_PORT',
   uta: 'OPENALICE_UTA_PORT',
+  ui: 'OPENALICE_UI_PORT',
 }
 
 function parsePort(raw: unknown, origin: string): number {
@@ -94,7 +97,7 @@ export async function readPortsFile(userDataHome: string): Promise<Partial<Recor
     throw new Error(`[guardian] ${filePath} is not valid JSON: ${err instanceof Error ? err.message : String(err)}`)
   }
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    throw new Error(`[guardian] ${filePath} must be a JSON object like {"web":47331,"mcp":47332,"uta":47333}`)
+    throw new Error(`[guardian] ${filePath} must be a JSON object like {"web":47331,"mcp":47332,"uta":47333,"ui":5173}`)
   }
   const out: Partial<Record<PortName, number>> = {}
   for (const name of Object.keys(PORT_DEFAULTS) as PortName[]) {
@@ -118,14 +121,16 @@ export function resolvePortConfig(
     if (fromFile !== undefined) return { value: fromFile, source: 'file' }
     return { value: PORT_DEFAULTS[name], source: 'default' }
   }
-  return { web: pick('web'), mcp: pick('mcp'), uta: pick('uta') }
+  return { web: pick('web'), mcp: pick('mcp'), uta: pick('uta'), ui: pick('ui') }
 }
 
 /**
  * Turn a resolved PortConfig into bindable ports. Explicit (env/file) ports
  * assert-free and fail loud when taken; default ports probe upward (web from
- * 47331, mcp from web+1, uta from max(47333, mcp+1)) — the historical
- * collision-dodging behavior.
+ * 47331, mcp from web+1, uta from max(47333, mcp+1), ui from 5173) — the
+ * historical collision-dodging behavior. The ui port is resolved here too
+ * (not left to Vite's own auto-increment) so Guardian can print the real
+ * URL and inject the value into Alice for the WS-origin allowlist.
  */
 export async function planPorts(cfg: PortConfig): Promise<GuardianPorts> {
   const claim = async (name: PortName, choice: PortChoice, probeStart: number): Promise<number> => {
@@ -141,7 +146,8 @@ export async function planPorts(cfg: PortConfig): Promise<GuardianPorts> {
   const webPort = await claim('web', cfg.web, PORT_DEFAULTS.web)
   const mcpPort = await claim('mcp', cfg.mcp, webPort + 1)
   const utaPort = await claim('uta', cfg.uta, Math.max(PORT_DEFAULTS.uta, mcpPort + 1))
-  return { webPort, mcpPort, utaPort }
+  const uiPort = await claim('ui', cfg.ui, PORT_DEFAULTS.ui)
+  return { webPort, mcpPort, utaPort, uiPort }
 }
 
 export interface SpawnSpec {

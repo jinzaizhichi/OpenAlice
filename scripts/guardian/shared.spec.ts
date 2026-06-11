@@ -30,9 +30,9 @@ describe('readPortsFile', () => {
     expect(await readPortsFile(home)).toEqual({ web: 12345 })
   })
 
-  it('reads all three ports', async () => {
-    await writePortsFile('{ "web": 18331, "mcp": 18332, "uta": 18333 }')
-    expect(await readPortsFile(home)).toEqual({ web: 18331, mcp: 18332, uta: 18333 })
+  it('reads all four ports', async () => {
+    await writePortsFile('{ "web": 18331, "mcp": 18332, "uta": 18333, "ui": 15173 }')
+    expect(await readPortsFile(home)).toEqual({ web: 18331, mcp: 18332, uta: 18333, ui: 15173 })
   })
 
   it('fails loud on broken JSON instead of silently defaulting', async () => {
@@ -59,6 +59,7 @@ describe('resolvePortConfig', () => {
       web: { value: 47331, source: 'default' },
       mcp: { value: 47332, source: 'default' },
       uta: { value: 47333, source: 'default' },
+      ui: { value: 5173, source: 'default' },
     })
   })
 
@@ -70,6 +71,14 @@ describe('resolvePortConfig', () => {
     expect(cfg.web).toEqual({ value: 15000, source: 'env' })
     expect(cfg.mcp).toEqual({ value: 12346, source: 'file' })
     expect(cfg.uta).toEqual({ value: 47333, source: 'default' })
+    expect(cfg.ui).toEqual({ value: 5173, source: 'default' })
+  })
+
+  it('ui port follows the same precedence as the backend trio', () => {
+    expect(resolvePortConfig({ OPENALICE_UI_PORT: '15173' }, { ui: 16173 }).ui)
+      .toEqual({ value: 15173, source: 'env' })
+    expect(resolvePortConfig({}, { ui: 16173 }).ui)
+      .toEqual({ value: 16173, source: 'file' })
   })
 
   it('empty-string env var is treated as unset', () => {

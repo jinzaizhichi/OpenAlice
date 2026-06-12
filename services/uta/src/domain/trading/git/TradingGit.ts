@@ -311,6 +311,7 @@ export class TradingGit implements ITradingGit {
     for (const commit of this.commits) {
       for (const result of commit.results) {
         if (result.orderId) known.add(result.orderId)
+        for (const leg of result.legs ?? []) known.add(leg.orderId)
       }
     }
     return known
@@ -347,10 +348,14 @@ export class TradingGit implements ITradingGit {
   ): OperationSummary[] {
     const summaries: OperationSummary[] = []
 
-    for (let i = 0; i < commit.operations.length; i++) {
-      const op = commit.operations[i]
+    // Sync commits store ONE syncOrders op with N per-order results — iterate
+    // the longer of the two so every update gets its own row, attributed by
+    // the result's own symbol (the op carries none).
+    const count = Math.max(commit.operations.length, commit.results.length)
+    for (let i = 0; i < count; i++) {
+      const op = commit.operations[i] ?? commit.operations[0]
       const result = commit.results[i]
-      const symbol = getOperationSymbol(op)
+      const symbol = result?.symbol || getOperationSymbol(op)
 
       if (filterSymbol && symbol !== filterSymbol) continue
 
@@ -572,6 +577,7 @@ export class TradingGit implements ITradingGit {
         action: 'syncOrders' as const,
         success: true,
         orderId: u.orderId,
+        symbol: u.symbol,
         status: u.currentStatus,
         filledQty: u.filledQty,
         filledPrice: u.filledPrice,
@@ -590,13 +596,19 @@ export class TradingGit implements ITradingGit {
   }
 
   getPendingOrderIds(): Array<{ orderId: string; symbol: string; localSymbol?: string; aliceId?: string }> {
-    // Scan newest→oldest to find latest known status per orderId
+    // Scan newest→oldest to find latest known status per orderId.
+    // Bracket TP/SL legs ride in result.legs — born 'submitted'; any later
+    // sync row for a leg lives in a newer commit and wins (first-seen-wins
+    // over a newest-first scan).
     const orderStatus = new Map<string, string>()
 
     for (let i = this.commits.length - 1; i >= 0; i--) {
       for (const result of this.commits[i].results) {
         if (result.orderId && !orderStatus.has(result.orderId)) {
           orderStatus.set(result.orderId, result.status)
+        }
+        for (const leg of result.legs ?? []) {
+          if (!orderStatus.has(leg.orderId)) orderStatus.set(leg.orderId, 'submitted')
         }
       }
     }
@@ -608,27 +620,30 @@ export class TradingGit implements ITradingGit {
     for (const commit of this.commits) {
       for (let j = 0; j < commit.results.length; j++) {
         const result = commit.results[j]
-        if (
-          result.orderId &&
-          !seen.has(result.orderId) &&
-          orderStatus.get(result.orderId) === 'submitted'
-        ) {
-          const op = commit.operations[j]
-          const symbol = getOperationSymbol(op)
-          // Broker-native symbol for symbol-scoped order lookups (CCXT).
-          // Persisted with the operation, so it survives process restarts
-          // where the broker's in-memory orderId→symbol cache is empty.
-          const hasContract =
-            op?.action === 'placeOrder' || op?.action === 'closePosition' || op?.action === 'observeExternalOrder'
-          const localSymbol = hasContract ? op.contract?.localSymbol || undefined : undefined
-          const aliceId = hasContract ? op.contract?.aliceId || undefined : undefined
+        const op = commit.operations[j]
+        const symbol = getOperationSymbol(op)
+        // Broker-native symbol for symbol-scoped order lookups (CCXT).
+        // Persisted with the operation, so it survives process restarts
+        // where the broker's in-memory orderId→symbol cache is empty.
+        const hasContract =
+          op?.action === 'placeOrder' || op?.action === 'closePosition' || op?.action === 'observeExternalOrder'
+        const localSymbol = hasContract ? op.contract?.localSymbol || undefined : undefined
+        const aliceId = hasContract ? op.contract?.aliceId || undefined : undefined
+
+        // Parent order + its bracket legs share the operation's contract.
+        const candidates = [
+          ...(result.orderId ? [result.orderId] : []),
+          ...(result.legs ?? []).map((l) => l.orderId),
+        ]
+        for (const orderId of candidates) {
+          if (seen.has(orderId) || orderStatus.get(orderId) !== 'submitted') continue
           pending.push({
-            orderId: result.orderId,
+            orderId,
             symbol,
             ...(localSymbol && { localSymbol }),
             ...(aliceId && { aliceId }),
           })
-          seen.add(result.orderId)
+          seen.add(orderId)
         }
       }
     }
@@ -823,6 +838,7 @@ export class TradingGit implements ITradingGit {
 
     const orderId = rawObj.orderId as string | undefined
     const orderState = rawObj.orderState as OperationResult['orderState']
+    const legs = rawObj.legs as OperationResult['legs']
 
     return {
       action: op.action,
@@ -830,6 +846,7 @@ export class TradingGit implements ITradingGit {
       orderId,
       status: this.mapOrderStatus(orderState),
       orderState,
+      ...(Array.isArray(legs) && legs.length > 0 ? { legs } : {}),
       raw,
     }
   }

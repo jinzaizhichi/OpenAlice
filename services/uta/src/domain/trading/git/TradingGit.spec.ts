@@ -722,6 +722,49 @@ describe('TradingGit', () => {
       expect(gitP.getPendingOrderIds()).toHaveLength(0)
     })
 
+    it('tracks bracket TP/SL legs from birth (Alpaca naked-ledger bug)', async () => {
+      // The bug: bracket legs existed only on the exchange — order list,
+      // sync poller, and cancel were all blind to them; the held SL leg
+      // never even appears in the venue's open-orders listing.
+      const legConfig = makeConfig({
+        executeOperation: vi.fn().mockResolvedValue({
+          success: true,
+          orderId: 'parent-1',
+          legs: [
+            { orderId: 'leg-tp', kind: 'takeProfit' },
+            { orderId: 'leg-sl', kind: 'stopLoss' },
+          ],
+        }),
+      })
+      const gitP = new TradingGit(legConfig)
+
+      gitP.add(buyOp('AAPL'))
+      gitP.commit('bracket buy')
+      await gitP.push()
+
+      const pending = gitP.getPendingOrderIds()
+      expect(pending.map((p) => p.orderId).sort()).toEqual(['leg-sl', 'leg-tp', 'parent-1'])
+      // Legs inherit the parent operation's contract (symbol-scoped lookups
+      // + restart survival need it).
+      for (const p of pending) expect(p.symbol).toBe('AAPL')
+
+      // Observation pass must never re-record our own legs as external.
+      const known = gitP.getKnownOrderIds()
+      expect(known.has('leg-tp')).toBe(true)
+      expect(known.has('leg-sl')).toBe(true)
+
+      // A later sync resolving a leg removes it from pending, keeps the rest.
+      await gitP.sync(
+        [{
+          orderId: 'leg-tp', symbol: 'AAPL',
+          previousStatus: 'submitted', currentStatus: 'filled',
+          filledPrice: '297', filledQty: '1',
+        }],
+        makeGitState(),
+      )
+      expect(gitP.getPendingOrderIds().map((p) => p.orderId).sort()).toEqual(['leg-sl', 'parent-1'])
+    })
+
     it('excludes orders that were filled at push time (no sync needed)', async () => {
       const orderState = new OrderState()
       orderState.status = 'Filled'
@@ -740,6 +783,30 @@ describe('TradingGit', () => {
 
       // Filled at push time → should NOT appear as pending
       expect(gitP.getPendingOrderIds()).toHaveLength(0)
+    })
+  })
+
+  describe('log — sync commit attribution', () => {
+    it('renders one row per sync update, attributed by the update symbol', async () => {
+      const gitS = new TradingGit(makeConfig({
+        executeOperation: vi.fn().mockResolvedValue({ success: true, orderId: 'o-1' }),
+      }))
+      gitS.add(buyOp('AAPL'))
+      gitS.commit('buy')
+      await gitS.push()
+
+      await gitS.sync(
+        [
+          { orderId: 'o-1', symbol: 'AAPL', previousStatus: 'submitted', currentStatus: 'filled', filledPrice: '150', filledQty: '10' },
+          { orderId: 'o-2', symbol: 'TSLA', previousStatus: 'submitted', currentStatus: 'cancelled' },
+        ],
+        makeGitState(),
+      )
+
+      const [head] = gitS.log({ limit: 1 })
+      expect(head.operations).toHaveLength(2)
+      expect(head.operations.map((o) => o.symbol)).toEqual(['AAPL', 'TSLA'])
+      expect(head.operations[0].change).toContain('@150')
     })
   })
 

@@ -7,7 +7,7 @@
 
 import type { Contract, Order, OrderCancel, Execution, OrderState } from '@traderalice/ibkr'
 import type Decimal from 'decimal.js'
-import type { Position, OpenOrder, TpSlParams } from './broker.js'
+import type { Position, OpenOrder, TpSlParams, PlaceOrderLeg } from './broker.js'
 import './contract-ext.js'
 
 // ==================== Commit Hash ====================
@@ -69,6 +69,10 @@ export interface OperationResult {
   /** Decimal as string — see filledQty. */
   filledPrice?: string
   error?: string
+  /** Bracket TP/SL child orders created alongside this placeOrder (tracked from birth). */
+  legs?: PlaceOrderLeg[]
+  /** Symbol for per-row attribution in multi-update sync commits (the op carries none). */
+  symbol?: string
   raw?: unknown
 }
 

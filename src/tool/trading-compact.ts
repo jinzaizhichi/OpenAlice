@@ -155,6 +155,12 @@ export function compactResult(r: unknown): AnyRec {
   pick(out, 'filledQty', val(k['filledQty']))
   pick(out, 'filledPrice', price(k['filledPrice']))
   pick(out, 'error', val(k['error']))
+  // Bracket TP/SL leg ids — the agent's only confirmation the protective
+  // legs exist (and the handle for cancelling them).
+  const legs = k['legs'] as Array<{ orderId?: unknown; kind?: unknown }> | undefined
+  if (Array.isArray(legs) && legs.length > 0) {
+    out['legs'] = legs.map((l) => ({ orderId: l.orderId, kind: l.kind }))
+  }
   const orderState = k['orderState'] as AnyRec | undefined
   const rejectReason = orderState ? val(orderState['rejectReason']) : undefined
   if (rejectReason) out['rejectReason'] = rejectReason

@@ -105,6 +105,17 @@ export interface Position {
 
 // ==================== Order result ====================
 
+/**
+ * A protective child order the venue created alongside the entry (bracket
+ * TP/SL legs). Surfaced so the ledger can track the legs from birth —
+ * otherwise they exist only on the exchange and every Alice surface
+ * (order list, sync poller, cancel) is blind to them.
+ */
+export interface PlaceOrderLeg {
+  orderId: string
+  kind: 'takeProfit' | 'stopLoss'
+}
+
 /** Result of placeOrder / modifyOrder / closePosition. */
 export interface PlaceOrderResult {
   success: boolean
@@ -113,6 +124,8 @@ export interface PlaceOrderResult {
   message?: string
   execution?: Execution
   orderState?: OrderState
+  /** Bracket TP/SL child orders created by this placement, if any. */
+  legs?: PlaceOrderLeg[]
 }
 
 /** An open/completed order triplet as returned by getOrders(). */

@@ -120,6 +120,63 @@ describe('AlpacaBroker — placeOrder()', () => {
     expect(result.orderId).toBe('ord-1')
   })
 
+  it('surfaces bracket leg ids with kinds (ledger tracks legs from birth)', async () => {
+    const acc = new AlpacaBroker({ apiKey: 'k', secretKey: 's', paper: true })
+    ;(acc as any).client = {
+      createOrder: vi.fn().mockResolvedValue({
+        id: 'parent-1', status: 'new', order_class: 'bracket',
+        legs: [
+          { id: 'tp-1', type: 'limit', limit_price: '297', stop_price: null, status: 'held' },
+          { id: 'sl-1', type: 'stop', limit_price: null, stop_price: '285.5', status: 'held' },
+        ],
+      }),
+    }
+    const contract = new Contract()
+    contract.aliceId = 'alpaca-paper|AAPL'
+    contract.symbol = 'AAPL'
+    contract.secType = 'STK'
+    contract.exchange = 'NASDAQ'
+    contract.currency = 'USD'
+
+    const order = new Order()
+    order.action = 'BUY'
+    order.orderType = 'LMT'
+    order.totalQuantity = new Decimal(1)
+    order.lmtPrice = new Decimal('291.57')
+
+    const result = await acc.placeOrder(contract, order, {
+      takeProfit: { price: '297' },
+      stopLoss: { price: '285.5' },
+    })
+    expect(result.success).toBe(true)
+    expect(result.legs).toEqual([
+      { orderId: 'tp-1', kind: 'takeProfit' },
+      { orderId: 'sl-1', kind: 'stopLoss' },
+    ])
+  })
+
+  it('omits legs for simple (non-bracket) placements', async () => {
+    const acc = new AlpacaBroker({ apiKey: 'k', secretKey: 's', paper: true })
+    ;(acc as any).client = {
+      createOrder: vi.fn().mockResolvedValue({ id: 'ord-2', status: 'new' }),
+    }
+    const contract = new Contract()
+    contract.aliceId = 'alpaca-paper|AAPL'
+    contract.symbol = 'AAPL'
+    contract.secType = 'STK'
+    contract.exchange = 'NASDAQ'
+    contract.currency = 'USD'
+
+    const order = new Order()
+    order.action = 'BUY'
+    order.orderType = 'MKT'
+    order.totalQuantity = new Decimal(1)
+
+    const result = await acc.placeOrder(contract, order)
+    expect(result.success).toBe(true)
+    expect('legs' in result).toBe(false)
+  })
+
   it('returns error when contract resolution fails', async () => {
     const acc = new AlpacaBroker({ apiKey: 'k', secretKey: 's', paper: true })
     ;(acc as any).client = { createOrder: vi.fn() }

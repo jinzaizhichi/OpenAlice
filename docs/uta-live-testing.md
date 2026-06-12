@@ -90,7 +90,14 @@ cancel. *Guards: editOrder venue quirks, id truncation.*
 `placeOrderWithTpSl` override this must REFUSE loudly (never place a naked
 entry). On a verified venue: after fill, confirm BOTH protective legs exist
 on the exchange — including the trigger/algo namespace — before calling it
-working. *Guards: the silent unprotected-position failure, the worst one.*
+working. On a native-bracket venue (Alpaca): the push result must carry
+`legs` ids, and after the entry fills `order list` must show BOTH legs as
+tracked orders. The held SL leg never appears in the venue's open-orders
+listing (Alpaca holds it while the TP works) — place-time is the ONLY
+moment Alice can learn it exists, so a venue listing diff can NOT recover
+a missed leg. *Guards: the silent unprotected-position failure (okx,
+ledger lied protected) and its mirror, the naked ledger (alpaca, ledger
+blind to real protection) — both fatal to "trust the log".*
 
 **S6 — Standalone stop.** `STP` with a far trigger → accepted → tracked as
 `submitted` across passes even though algo orders are invisible to the
@@ -143,6 +150,13 @@ dead ends.*
 - Conditional orders: where do they live (regular vs trigger namespace)?
   Document it in the venue's `exchanges/<name>.ts` override file — that
   file is the canonical home for every quirk you find.
+- Bracket/attached orders: if the venue creates child orders, `placeOrder`
+  must return their ids via `PlaceOrderResult.legs` so the ledger tracks
+  them from birth. Verify a leg the venue HIDES from its open-orders
+  listing (Alpaca's held stop) still shows in `order list` and syncs.
+- Amendment identity: does modify keep the order id or mint a new one
+  (Alpaca replaceOrder does)? After modify, the NEW id must be tracked and
+  the OLD id must resolve — no ghost pending.
 - Error messages from the venue must reach the user (no swallowed response
   bodies — the Alpaca opaque-422 lesson).
 
@@ -154,3 +168,13 @@ prices, search false negatives, unprotected TP/SL, id truncation, spot
 reduceOnly, getOrders crash, and friends. Round 5 (bybit sweep) found zero
 new product bugs — the venue-quirk fixes generalized. That's the signal the
 catalog converges; keep it that way.
+
+Round 6 (2026-06-12, alpaca market-open): 3 bugs. CLI gateway silently
+stripped unknown flags (a typo'd `--quantity` staged a quantity-less LMT
+order that committed clean) → strictObject + stage-time per-orderType
+required-field gate. Bracket TP/SL legs were untracked from birth — the
+ledger was blind to real protection on the exchange, and the held SL leg
+is unrecoverable from listings → `PlaceOrderResult.legs` tracked through
+the ledger. Plus sync-commit log rows now attribute per-update symbols
+(was `unknown`). S2/S3/S4/S5/S6 all green after fixes; OCO leg-cancel
+behavior (cancel one → venue kills both) verified and synced faithfully.

@@ -436,8 +436,52 @@ export class UnifiedTradingAccount {
     }
   }
 
+  /**
+   * Per-orderType required-field gate, enforced at stage time so a broken
+   * order can never reach staging/commit. Without this, a caller that loses
+   * fields on the way in (e.g. a CLI typo like --quantity for --totalQuantity)
+   * stages a quantity-less LMT order that looks perfectly committable.
+   */
+  private _validatePlaceOrderParams(p: StagePlaceOrderParams): void {
+    const fail = (msg: string): never => {
+      throw new Error(`placeOrder (${p.orderType}): ${msg}`)
+    }
+    const has = (v: unknown): boolean => v != null && String(v) !== ''
+    const qty = has(p.totalQuantity)
+    const cash = has(p.cashQty)
+    if (qty && cash) fail('totalQuantity and cashQty are mutually exclusive — provide exactly one.')
+    if (p.orderType === 'MKT') {
+      if (!qty && !cash) fail('requires totalQuantity (shares) or cashQty (notional).')
+    } else {
+      if (cash) fail('cashQty (notional) is only supported for MKT orders — use totalQuantity.')
+      if (!qty) fail('requires totalQuantity.')
+    }
+    switch (p.orderType) {
+      case 'LMT':
+        if (!has(p.lmtPrice)) fail('requires lmtPrice.')
+        break
+      case 'STP':
+        if (!has(p.auxPrice)) fail('requires auxPrice (stop trigger price).')
+        break
+      case 'STP LMT':
+        if (!has(p.auxPrice)) fail('requires auxPrice (stop trigger price).')
+        if (!has(p.lmtPrice)) fail('requires lmtPrice.')
+        break
+      case 'TRAIL':
+      case 'TRAIL LIMIT': {
+        const aux = has(p.auxPrice)
+        const pct = has(p.trailingPercent)
+        if (aux && pct) fail('auxPrice and trailingPercent are mutually exclusive — provide exactly one.')
+        if (!aux && !pct) fail('requires auxPrice (trailing offset) or trailingPercent.')
+        if (p.orderType === 'TRAIL LIMIT' && !has(p.lmtPrice)) fail('requires lmtPrice.')
+        break
+      }
+    }
+  }
+
   stagePlaceOrder(params: StagePlaceOrderParams): AddResult {
     this._assertWritable()
+    this._validatePlaceOrderParams(params)
     // Resolve aliceId → full contract via broker (fills secType, exchange, currency, conId, etc.)
     const contract = this.contractFromAliceId(params.aliceId)
     if (params.symbol) contract.symbol = params.symbol

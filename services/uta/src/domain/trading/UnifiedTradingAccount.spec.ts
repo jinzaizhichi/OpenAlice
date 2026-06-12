@@ -321,13 +321,69 @@ describe('UTA — stagePlaceOrder', () => {
   })
 
   it('passes order types through', () => {
-    const types = ['MKT', 'LMT', 'STP', 'STP LMT', 'TRAIL']
-    for (const orderType of types) {
+    // Each type with its required fields (stage-time validation refuses less)
+    const cases: Array<[string, Record<string, string>]> = [
+      ['MKT', {}],
+      ['LMT', { lmtPrice: '100' }],
+      ['STP', { auxPrice: '95' }],
+      ['STP LMT', { auxPrice: '95', lmtPrice: '94' }],
+      ['TRAIL', { auxPrice: '5' }],
+    ]
+    for (const [orderType, extra] of cases) {
       const { uta: u } = createUTA()
-      u.stagePlaceOrder({ aliceId: 'mock-paper|X', action: 'BUY', orderType, totalQuantity: '1' })
+      u.stagePlaceOrder({ aliceId: 'mock-paper|X', action: 'BUY', orderType, totalQuantity: '1', ...extra })
       const { order } = getStagedPlaceOrder(u)
       expect(order.orderType).toBe(orderType)
     }
+  })
+
+  describe('per-orderType required-field gate (stage-time refusal)', () => {
+    // The bug this guards: a CLI typo (--quantity for --totalQuantity) staged
+    // a quantity-less, price-less LMT order that committed clean.
+    const place = (p: Record<string, unknown>) =>
+      uta.stagePlaceOrder({ aliceId: 'mock-paper|AAPL', action: 'BUY', ...p } as never)
+
+    it('refuses LMT without lmtPrice', () => {
+      expect(() => place({ orderType: 'LMT', totalQuantity: '1' })).toThrow(/requires lmtPrice/)
+    })
+
+    it('refuses LMT without any quantity', () => {
+      expect(() => place({ orderType: 'LMT', lmtPrice: '100' })).toThrow(/requires totalQuantity/)
+    })
+
+    it('refuses MKT with neither totalQuantity nor cashQty', () => {
+      expect(() => place({ orderType: 'MKT' })).toThrow(/totalQuantity .*or cashQty/)
+    })
+
+    it('refuses totalQuantity + cashQty together', () => {
+      expect(() => place({ orderType: 'MKT', totalQuantity: '1', cashQty: '100' })).toThrow(/mutually exclusive/)
+    })
+
+    it('refuses cashQty on non-MKT orders', () => {
+      expect(() => place({ orderType: 'LMT', cashQty: '100', lmtPrice: '100' })).toThrow(/only supported for MKT/)
+    })
+
+    it('refuses STP without auxPrice', () => {
+      expect(() => place({ orderType: 'STP', totalQuantity: '1' })).toThrow(/requires auxPrice/)
+    })
+
+    it('refuses STP LMT missing either price', () => {
+      expect(() => place({ orderType: 'STP LMT', totalQuantity: '1', lmtPrice: '94' })).toThrow(/requires auxPrice/)
+      expect(() => place({ orderType: 'STP LMT', totalQuantity: '1', auxPrice: '95' })).toThrow(/requires lmtPrice/)
+    })
+
+    it('refuses TRAIL with neither/both of auxPrice and trailingPercent', () => {
+      expect(() => place({ orderType: 'TRAIL', totalQuantity: '1' })).toThrow(/auxPrice .*or trailingPercent/)
+      expect(() => place({ orderType: 'TRAIL', totalQuantity: '1', auxPrice: '5', trailingPercent: '1' })).toThrow(/mutually exclusive/)
+    })
+
+    it('refuses TRAIL LIMIT without lmtPrice', () => {
+      expect(() => place({ orderType: 'TRAIL LIMIT', totalQuantity: '1', auxPrice: '5' })).toThrow(/requires lmtPrice/)
+    })
+
+    it('treats empty string as absent (LLM-emitted "" must not satisfy a requirement)', () => {
+      expect(() => place({ orderType: 'LMT', totalQuantity: '1', lmtPrice: '' })).toThrow(/requires lmtPrice/)
+    })
   })
 
   it('sets totalQuantity as Decimal', () => {

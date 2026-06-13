@@ -309,10 +309,21 @@ export class AlpacaBroker implements IBroker {
       }
 
       const result = await this.client.createOrder(alpacaOrder) as AlpacaOrderRaw
+      // Bracket legs: surface child order ids so the ledger tracks them from
+      // birth. The held stop leg never appears in the open-orders listing
+      // (Alpaca keeps it 'held' while the TP works), so place-time is the
+      // ONLY moment Alice can learn it exists.
+      const legs = (result.legs ?? [])
+        .filter((l) => l.id)
+        .map((l) => ({
+          orderId: l.id,
+          kind: (l.stop_price ? 'stopLoss' : 'takeProfit') as 'stopLoss' | 'takeProfit',
+        }))
       return {
         success: true,
         orderId: result.id,
         orderState: makeOrderState(result.status),
+        ...(legs.length > 0 ? { legs } : {}),
       }
     } catch (err) {
       return { success: false, error: alpacaErrorMessage(err) }

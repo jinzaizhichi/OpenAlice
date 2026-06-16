@@ -292,6 +292,10 @@ function validateFile(value: unknown): SessionRecord[] {
       createdAt: r['createdAt'],
       lastActiveAt: r['lastActiveAt'],
       state: r['state'],
+      // Carry the session title (the captured first message) across reloads —
+      // it's written to disk by `flush`, so it must be read back here too, or
+      // every server restart / registry reload reverts the row to the `c1` name.
+      ...(typeof r['title'] === 'string' ? { title: r['title'] } : {}),
     };
     const hint = r['resumeHint'];
     if (

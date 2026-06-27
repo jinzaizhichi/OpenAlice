@@ -10,8 +10,10 @@ description: >
   prompt; the run reports back to the user's Inbox. Use for: "track this",
   "add an issue/todo", "run this every 30 minutes", "every morning before the
   open do X", "check Y each hour and ping me only if Z", "do this once at 4pm",
-  "self-schedule", "set up a recurring job". There is no command and no API —
-  it is just editing these files.
+  "self-schedule", "set up a recurring job". Manage issues either by editing
+  the files directly or with the `alice-workspace issue …` CLI (list / show /
+  create / update / comment); the same tools are also exposed over MCP (one
+  adapter).
 ---
 
 # Issues & self-scheduling — `.alice/issues/<id>.md`
@@ -27,6 +29,64 @@ markdown body (the human description).
   when the issue is due — exactly like a recurring job.
 
 The filename stem **is** the issue id (`morning-scan.md` → id `morning-scan`).
+
+## Two ways to manage issues — the CLI (agent surface) or the file
+
+You have two equivalent paths, and both write the **same**
+`.alice/issues/<id>.md` files:
+
+1. **`alice-workspace issue …` — the convenient agent surface, and what you
+   should reach for first.** A small set of verbs does the read-modify-write for
+   you: id slug derivation, frontmatter validation against the allowed
+   status/priority enums, the stable `## Comments` section, and not clobbering an
+   existing id. The same tools are also exposed over **MCP** — it is *one*
+   registration behind both, so an MCP-speaking agent gets the identical surface
+   with no separate path.
+2. **Editing the file directly** with your normal file tools. Reach for this when
+   you are writing the markdown **body** or the scheduling frontmatter
+   (`when` / `what` / `agent`) — the CLI verbs cover the board fields and
+   comments, but the body and the schedule shape read most clearly as text. The
+   file is always the single source of truth either way.
+
+### CLI verbs
+
+```bash
+# list — every issue on this workspace's board, as compact rows
+alice-workspace issue list
+
+# show — one issue in full: frontmatter + body (including any ## Comments)
+alice-workspace issue show --id morning-scan
+
+# create — a new issue. --title is required; --id is derived as a kebab slug
+# from the title when omitted. Creating over an existing id is refused.
+alice-workspace issue create --title "Split the data fetcher" \
+  --priority medium \
+  --body "src/fetch.ts mixes the HTTP call with the normalization step."
+
+# update — patch board fields only (status / priority / assignee); the body and
+# scheduling frontmatter are left untouched. Setting status done|canceled is how
+# you silence a self-scheduled issue (there is no separate enabled flag).
+alice-workspace issue update --id morning-scan --status done
+
+# comment — append a note under the ## Comments section, authored as
+# ws:<this workspace>. Use it for a progress note, finding, or a question.
+alice-workspace issue comment --id morning-scan --text "Brief pushed; SPY gapped +0.4%."
+```
+
+Run `alice-workspace issue <verb> --help` for a verb's flags. Object-valued flags
+take JSON — e.g. to create a self-scheduled issue in one call, pass the schedule
+as `--when`:
+
+```bash
+alice-workspace issue create --title "Pre-market brief" --priority high \
+  --when '{"kind":"cron","cron":"30 8 * * 1-5"}' \
+  --what "Pull pre-market movers and overnight news for my watchlist, write a short brief to research/premarket.md, then run: alice-workspace inbox push --doc research/premarket.md --comments 'Pre-market brief'." \
+  --agent claude
+```
+
+The verb set is `list` / `show` / `create` / `update` / `comment` — there is no
+`delete` verb; remove an issue by deleting its file (see Notes). The examples
+below show the on-disk file shape the CLI and your direct edits both produce.
 
 ## Example — a scheduled issue (`.alice/issues/morning-scan.md`)
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { api } from '../api'
 import type { IssueDetail } from '../api/issues'
@@ -11,6 +11,12 @@ export interface UseIssueDetail {
   error: string | null
   /** True only before the very first load for this (wsId, id). */
   loading: boolean
+  /**
+   * Apply a server-returned detail immediately (after a write) without waiting
+   * for the next poll. The PATCH / comment endpoints return the same shape as
+   * GET, so the write path is authoritative — no optimistic divergence.
+   */
+  mutate: (next: IssueDetail) => void
 }
 
 /**
@@ -49,5 +55,12 @@ export function useIssueDetail(wsId: string, id: string): UseIssueDetail {
     }
   }, [wsId, id])
 
-  return { data, error, loading: data === null && error === null }
+  const mutate = useCallback((next: IssueDetail) => {
+    if (mounted.current) {
+      setData(next)
+      setError(null)
+    }
+  }, [])
+
+  return { data, error, loading: data === null && error === null, mutate }
 }

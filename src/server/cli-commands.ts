@@ -164,6 +164,15 @@ export const CLI_EXPORTS: Record<string, CliExport> = {
         add: 'entity_upsert',
         search: 'entity_search',
       },
+      // issue: THIS workspace's own board (`.alice/issues/<id>.md`) — the
+      // agent-primary surface for the same writes the human/UI HTTP routes do.
+      issue: {
+        update: 'issue_update',
+        comment: 'issue_comment',
+        create: 'issue_create',
+        list: 'issue_list',
+        show: 'issue_show',
+      },
     },
   },
   uta: {

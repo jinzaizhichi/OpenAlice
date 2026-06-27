@@ -1,5 +1,5 @@
 import type { HeadlessTaskRecord } from '../../api/headless'
-import type { IssueDetail, IssueSnapshot } from '../../api/issues'
+import type { IssueDetail, IssuePriority, IssueSnapshot, IssueStatus } from '../../api/issues'
 
 // GET /api/issues aggregates every workspace's declared issues by SCANNING
 // each workspace's `.alice/issues/<id>.md` dir (one markdown file per issue) —
@@ -342,4 +342,61 @@ export function demoIssueDetail(wsId: string, id: string): IssueDetail | null {
     },
     runs: extras?.runs ?? [],
   }
+}
+
+// ==================== Mutations (Phase 2b demo write path) ====================
+// PATCH /api/issues/:wsId/:id and POST /api/issues/:wsId/:id/comments mutate the
+// in-memory fixture above IN PLACE (per-session; resets on reload), so the demo
+// UI reflects edits/comments just like the real working-tree-only writes do. The
+// board snapshot is the single source of truth for status/priority/assignee
+// (GET list + GET detail both read it live, so one mutation updates both); the
+// markdown body — which now carries the appended `## Comments` section — lives in
+// the extras map, materialized on demand for rows that had no extras entry.
+
+/** Append one comment block to a markdown body, under a stable `## Comments`
+ *  heading (created if absent). Mirrors the server's appendIssueComment format:
+ *  `**<author>** · <ISO timestamp>` then a blank line then the text. */
+function appendCommentToBody(body: string, author: string, text: string): string {
+  const block = `**${author}** · ${new Date().toISOString()}\n\n${text}`
+  const trimmed = body.replace(/\s+$/, '')
+  const hasSection = /(^|\n)## Comments\s*(\n|$)/.test(trimmed)
+  return hasSection
+    ? `${trimmed}\n\n${block}\n`
+    : `${trimmed}\n\n## Comments\n\n${block}\n`
+}
+
+/** PATCH backing: mutate the board issue's status/priority/assignee in place,
+ *  then return the fresh detail shape (same `{ issue, runs }` as GET). Returns
+ *  null when the (wsId, id) pair doesn't exist (→ 404). */
+export function demoIssueUpdate(
+  wsId: string,
+  id: string,
+  patch: { status?: IssueStatus; priority?: IssuePriority; assignee?: string },
+): IssueDetail | null {
+  const boardIssue = findBoardIssue(wsId, id)
+  if (!boardIssue) return null
+  if (patch.status !== undefined) boardIssue.status = patch.status
+  if (patch.priority !== undefined) boardIssue.priority = patch.priority
+  if (patch.assignee !== undefined) boardIssue.assignee = patch.assignee
+  return demoIssueDetail(wsId, id)
+}
+
+/** POST-comment backing: append a comment to the issue's markdown body (creating
+ *  an extras entry for rows that only had the generic fallback body), then return
+ *  the fresh detail shape. Returns null when the issue doesn't exist (→ 404). */
+export function demoIssueAddComment(
+  wsId: string,
+  id: string,
+  author: string,
+  text: string,
+): IssueDetail | null {
+  const boardIssue = findBoardIssue(wsId, id)
+  if (!boardIssue) return null
+  const key = `${wsId}/${id}`
+  const existing = demoIssueExtras[key]
+  const currentBody = existing?.body ?? `${boardIssue.title}\n\n(No description.)`
+  const nextBody = appendCommentToBody(currentBody, author, text)
+  if (existing) existing.body = nextBody
+  else demoIssueExtras[key] = { body: nextBody, runs: [] }
+  return demoIssueDetail(wsId, id)
 }

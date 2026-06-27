@@ -1,4 +1,4 @@
-import { fetchJson } from './client'
+import { fetchJson, headers } from './client'
 import type { HeadlessTaskRecord } from './headless'
 import type { ScheduleWhen } from './schedule'
 
@@ -95,6 +95,36 @@ export const issuesApi = {
   async getDetail(wsId: string, id: string): Promise<IssueDetail> {
     return fetchJson<IssueDetail>(
       `/api/issues/${encodeURIComponent(wsId)}/${encodeURIComponent(id)}`,
+    )
+  },
+
+  /**
+   * Human write path: patch one issue's editable fields (any subset of
+   * status / priority / assignee). Returns the SAME detail shape as `getDetail`
+   * so the caller can apply it directly (refetch-free). Working-tree write on
+   * the server, no commit.
+   */
+  async update(
+    wsId: string,
+    id: string,
+    patch: { status?: IssueStatus; priority?: IssuePriority; assignee?: string },
+  ): Promise<IssueDetail> {
+    return fetchJson<IssueDetail>(
+      `/api/issues/${encodeURIComponent(wsId)}/${encodeURIComponent(id)}`,
+      { method: 'PATCH', headers, body: JSON.stringify(patch) },
+    )
+  },
+
+  /**
+   * Human write path: append a comment (author fixed to "human" server-side) to
+   * the issue body's `## Comments` section. Returns the updated detail — the
+   * returned `body` already carries the new comment, so the existing markdown
+   * renderer surfaces it with no client-side re-parsing.
+   */
+  async addComment(wsId: string, id: string, text: string): Promise<IssueDetail> {
+    return fetchJson<IssueDetail>(
+      `/api/issues/${encodeURIComponent(wsId)}/${encodeURIComponent(id)}/comments`,
+      { method: 'POST', headers, body: JSON.stringify({ text }) },
     )
   },
 }

@@ -62,8 +62,10 @@ export function isTerminalStatus(status: IssueStatus): boolean {
   return TERMINAL_STATUSES.has(status)
 }
 
-/** `when` — the shared Schedule shape (at / every / cron). Present iff scheduled. */
-const whenSchema = z.discriminatedUnion('kind', [
+/** `when` — the shared Schedule shape (at / every / cron). Present iff scheduled.
+ *  Exported so the agent-facing `issue_create` tool reuses the exact same shape
+ *  (no parallel re-declaration that could drift from what the reader validates). */
+export const issueWhenSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('at'), at: z.string().min(1) }),
   z.object({ kind: z.literal('every'), every: z.string().min(1) }),
   z.object({ kind: z.literal('cron'), cron: z.string().min(1) }),
@@ -81,7 +83,7 @@ export const issueFrontmatterSchema = z.object({
   priority: z.enum(ISSUE_PRIORITIES).default('none'),
   assignee: z.string().min(1).default('unassigned'),
   /** Present iff the issue self-schedules. Absent ⇒ pure board work item. */
-  when: whenSchema.optional(),
+  when: issueWhenSchema.optional(),
   /** Prompt fired on schedule; if absent, the fire prompt falls back to title+body. */
   what: z.string().min(1).optional(),
   /** Which adapter to run the scheduled fire with; defaults to the ws default agent. */
@@ -179,6 +181,20 @@ async function readOneIssue(
     return { ok: false, error: err instanceof Error ? err.message : String(err) }
   }
 
+  return parseIssueContent(id, raw)
+}
+
+/**
+ * Pure parse of one issue's file content (frontmatter + body) into a validated
+ * IssueRecord — no disk IO, no size cap. The shared validation seam: the reader
+ * (`readOneIssue`) calls it after the file read + size check, and the mutation
+ * helper (`./mutate.ts`) calls it to re-validate the content it just wrote so
+ * both paths agree on the exact schema + error shape. Never throws.
+ */
+export function parseIssueContent(
+  id: string,
+  raw: string,
+): { ok: true; issue: IssueRecord } | { ok: false; error: string } {
   const split = splitFrontmatter(raw)
   if (!split) return { ok: false, error: 'missing YAML frontmatter (expected a leading `---` block)' }
 
@@ -203,7 +219,7 @@ async function readOneIssue(
 /** Split a `---\n<yaml>\n---\n<body>` document. Line-based so a `---` inside the
  *  body (e.g. a markdown horizontal rule) never confuses the close fence. Returns
  *  null when there is no leading frontmatter block. */
-function splitFrontmatter(raw: string): { frontmatter: string; body: string } | null {
+export function splitFrontmatter(raw: string): { frontmatter: string; body: string } | null {
   const text = raw.replace(/^\uFEFF/, '')
   const lines = text.split(/\r?\n/)
   if (lines[0]?.trim() !== '---') return null

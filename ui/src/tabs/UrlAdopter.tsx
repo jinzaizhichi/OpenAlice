@@ -39,6 +39,7 @@ export function UrlAdopter() {
         <Route path="/chat/:channelId" element={<Navigate to="/inbox" replace />} />
         <Route path="/portfolio" element={<AdoptStatic spec={{ kind: 'portfolio', params: {} }} />} />
         <Route path="/issues" element={<AdoptStatic spec={{ kind: 'issue', params: {} }} />} />
+        <Route path="/issues/:wsId/:id" element={<AdoptIssueDetail />} />
         <Route path="/automation" element={<Navigate to="/automation/runs" replace />} />
         <Route path="/automation/:section" element={<AdoptAutomation />} />
         <Route path="/news" element={<AdoptStatic spec={{ kind: 'news', params: {} }} />} />
@@ -158,6 +159,12 @@ function AdoptMarketBoard() {
   )
 }
 
+function AdoptIssueDetail() {
+  const { wsId, id } = useParams<{ wsId: string; id: string }>()
+  if (!wsId || !id) return <Navigate to="/issues" replace />
+  return <AdoptStatic spec={{ kind: 'issue-detail', params: { wsId, id } }} />
+}
+
 function AdoptUtaDetail() {
   const { id } = useParams<{ id: string }>()
   if (!id) return <Navigate to="/settings/trading" replace />
@@ -254,7 +261,8 @@ function specToSection(spec: ViewSpec): ActivitySection {
     case 'file-viewer':        return 'workspaces'
     case 'portfolio':
     case 'uta-detail':         return 'portfolio'
-    case 'issue':              return 'issue'
+    case 'issue':
+    case 'issue-detail':       return 'issue'
     case 'automation':         return 'automation'
     case 'news':               return 'news'
     case 'market-list':

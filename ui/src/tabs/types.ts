@@ -20,6 +20,7 @@ export type ViewSpec =
   | { kind: 'template-detail';  params: { name: string } }
   | { kind: 'portfolio';      params: Record<string, never> }
   | { kind: 'issue';          params: Record<string, never> }
+  | { kind: 'issue-detail';   params: { wsId: string; id: string } }
   | { kind: 'automation';     params: { section: 'runs' | 'api' | 'flow' | 'webhook' } }
   | { kind: 'news';           params: Record<string, never> }
   | { kind: 'market-list';    params: Record<string, never> }

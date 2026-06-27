@@ -8,6 +8,10 @@
  * self-schedules, and the row then carries the scanner's firing markers. Creation
  * / edit is NOT a route — issues are a coding task (the agent writes the files).
  * This surface is purely "what issues exist across my workspaces".
+ *
+ * Phase 2a adds a read-only DETAIL endpoint (GET /api/issues/:wsId/:id) for one
+ * issue: its markdown body + scheduling/firing markers + its headless run history
+ * (Activity feed). Still no write/edit route — authoring stays a coding task.
  */
 import { Hono } from 'hono'
 
@@ -19,6 +23,15 @@ export function createIssuesRoutes(svc: WorkspaceService): Hono {
   // GET /api/issues → { workspaces: [{ wsId, tag, status, error?, issues: [...] }] }
   app.get('/', async (c) => {
     return c.json(await svc.issuesSnapshot())
+  })
+
+  // GET /api/issues/:wsId/:id → { issue: {...incl. body + markers}, runs: [...] }.
+  // 404 when the workspace or the issue id is absent (mirrors the workspaces route
+  // convention: `{ error: 'not_found' }`).
+  app.get('/:wsId/:id', async (c) => {
+    const detail = await svc.issueDetail(c.req.param('wsId'), c.req.param('id'))
+    if (!detail) return c.json({ error: 'not_found' }, 404)
+    return c.json(detail)
   })
 
   return app

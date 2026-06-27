@@ -15,6 +15,7 @@ import type { LucideIcon } from 'lucide-react'
 import type { IssueListItem, IssuePriority, IssueStatus, IssueWorkspace } from '../api/issues'
 import type { ScheduleWhen } from '../api/schedule'
 import { useIssues } from '../hooks/useIssues'
+import { useWorkspace } from '../tabs/store'
 
 // ==================== Cadence pill (lifted from AutomationSchedulesSection) ====================
 
@@ -41,7 +42,7 @@ function cadenceTitle(when: ScheduleWhen): string {
   }
 }
 
-function CadencePill({ when }: { when: ScheduleWhen }) {
+export function CadencePill({ when }: { when: ScheduleWhen }) {
   return (
     <span
       title={cadenceTitle(when)}
@@ -60,7 +61,7 @@ function CadencePill({ when }: { when: ScheduleWhen }) {
  * the matching number filled; urgent is a distinct filled amber square with a
  * `!` so it never reads as "just high".
  */
-function PriorityIndicator({ priority }: { priority: IssuePriority }) {
+export function PriorityIndicator({ priority }: { priority: IssuePriority }) {
   if (priority === 'urgent') {
     return (
       <span
@@ -93,7 +94,7 @@ function PriorityIndicator({ priority }: { priority: IssuePriority }) {
 
 // ==================== Status metadata + ordering ====================
 
-interface StatusMeta {
+export interface StatusMeta {
   label: string
   Icon: LucideIcon
   /** Icon tint. */
@@ -103,7 +104,7 @@ interface StatusMeta {
 /** Linear's group order: active work first, terminal states last. */
 const STATUS_ORDER: IssueStatus[] = ['in_progress', 'todo', 'backlog', 'done', 'canceled']
 
-const STATUS_META: Record<IssueStatus, StatusMeta> = {
+export const STATUS_META: Record<IssueStatus, StatusMeta> = {
   in_progress: { label: 'In Progress', Icon: CircleDot, className: 'text-amber-400' },
   todo: { label: 'Todo', Icon: Circle, className: 'text-muted' },
   backlog: { label: 'Backlog', Icon: CircleDashed, className: 'text-muted/60' },
@@ -112,37 +113,43 @@ const STATUS_META: Record<IssueStatus, StatusMeta> = {
 }
 
 interface BoardRow {
+  wsId: string
   wsTag: string
   issue: IssueListItem
 }
 
 // ==================== Rows + groups ====================
 
-function IssueRow({ wsTag, issue }: BoardRow) {
+function IssueRow({ wsId, wsTag, issue, onOpen }: BoardRow & { onOpen: () => void }) {
   const terminal = issue.status === 'done' || issue.status === 'canceled'
   return (
-    <li
-      className={`flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-bg-tertiary/40 ${
-        terminal ? 'opacity-60' : ''
-      }`}
-    >
-      <PriorityIndicator priority={issue.priority} />
-      <span
-        title={issue.id}
-        className="hidden max-w-[8rem] shrink-0 truncate font-mono text-[11px] text-muted/70 sm:inline"
+    <li>
+      <button
+        type="button"
+        onClick={onOpen}
+        title={`Open ${issue.id}`}
+        className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-bg-tertiary/40 ${
+          terminal ? 'opacity-60' : ''
+        }`}
       >
-        {issue.id}
-      </span>
-      <span title={issue.title} className="min-w-0 flex-1 truncate text-[13px] text-text">
-        {issue.title}
-      </span>
-      {issue.when && <CadencePill when={issue.when} />}
-      <span className="hidden shrink-0 text-xs text-muted sm:inline" title={`Assignee: ${issue.assignee}`}>
-        {issue.assignee}
-      </span>
-      <span className="shrink-0 rounded-full bg-bg-tertiary px-2 py-0.5 text-[11px] text-muted" title={`Workspace: ${wsTag}`}>
-        {wsTag}
-      </span>
+        <PriorityIndicator priority={issue.priority} />
+        <span
+          title={issue.id}
+          className="hidden max-w-[8rem] shrink-0 truncate font-mono text-[11px] text-muted/70 sm:inline"
+        >
+          {issue.id}
+        </span>
+        <span title={issue.title} className="min-w-0 flex-1 truncate text-[13px] text-text">
+          {issue.title}
+        </span>
+        {issue.when && <CadencePill when={issue.when} />}
+        <span className="hidden shrink-0 text-xs text-muted sm:inline" title={`Assignee: ${issue.assignee}`}>
+          {issue.assignee}
+        </span>
+        <span className="shrink-0 rounded-full bg-bg-tertiary px-2 py-0.5 text-[11px] text-muted" title={`Workspace: ${wsTag} (${wsId.slice(0, 8)})`}>
+          {wsTag}
+        </span>
+      </button>
     </li>
   )
 }
@@ -152,11 +159,13 @@ function StatusGroup({
   rows,
   collapsed,
   onToggle,
+  onOpenRow,
 }: {
   status: IssueStatus
   rows: BoardRow[]
   collapsed: boolean
   onToggle: () => void
+  onOpenRow: (row: BoardRow) => void
 }) {
   const meta = STATUS_META[status]
   return (
@@ -178,8 +187,12 @@ function StatusGroup({
       </button>
       {!collapsed && (
         <ul className="divide-y divide-border/60 border-t border-border">
-          {rows.map(({ wsTag, issue }) => (
-            <IssueRow key={`${wsTag}:${issue.id}`} wsTag={wsTag} issue={issue} />
+          {rows.map((row) => (
+            <IssueRow
+              key={`${row.wsId}:${row.issue.id}`}
+              {...row}
+              onOpen={() => onOpenRow(row)}
+            />
           ))}
         </ul>
       )}
@@ -219,7 +232,11 @@ function InvalidWorkspaces({ workspaces }: { workspaces: IssueWorkspace[] }) {
  */
 export function IssuesBoard() {
   const { data, error, loading } = useIssues()
+  const openOrFocus = useWorkspace((s) => s.openOrFocus)
   const [collapsed, setCollapsed] = useState<Set<IssueStatus>>(new Set())
+
+  const openRow = (row: BoardRow) =>
+    openOrFocus({ kind: 'issue-detail', params: { wsId: row.wsId, id: row.issue.id } })
 
   const toggle = (status: IssueStatus) =>
     setCollapsed((prev) => {
@@ -245,7 +262,7 @@ export function IssuesBoard() {
   // bucket by status in Linear's order. Empty buckets are hidden.
   const rows: BoardRow[] = workspaces
     .filter((w) => w.status === 'ok')
-    .flatMap((w) => (w.issues ?? []).map((issue) => ({ wsTag: w.tag, issue })))
+    .flatMap((w) => (w.issues ?? []).map((issue) => ({ wsId: w.wsId, wsTag: w.tag, issue })))
 
   const groups = STATUS_ORDER.map((status) => ({
     status,
@@ -288,6 +305,7 @@ export function IssuesBoard() {
           rows={g.rows}
           collapsed={collapsed.has(g.status)}
           onToggle={() => toggle(g.status)}
+          onOpenRow={openRow}
         />
       ))}
     </div>

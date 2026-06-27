@@ -105,7 +105,13 @@ async function makeWs(id: string, issues: IssueSpec[]): Promise<WorkspaceMeta> {
 function scannerFor(
   workspaces: WorkspaceMeta[],
   opts: {
-    dispatch?: (m: WorkspaceMeta, a: CliAdapter, p: string, t: number) => Promise<{ taskId: string }>
+    dispatch?: (
+      m: WorkspaceMeta,
+      a: CliAdapter,
+      p: string,
+      t: number,
+      issueId?: string,
+    ) => Promise<{ taskId: string }>
     markers?: MarkerStore
     now?: number
     adapter?: CliAdapter
@@ -130,7 +136,8 @@ describe('ScheduleScanner', () => {
     const { scanner, dispatch, markers } = scannerFor([ws])
     await scanner.scan()
     expect(dispatch).toHaveBeenCalledTimes(1)
-    expect(dispatch).toHaveBeenCalledWith(ws, headlessAdapter, 'go', expect.any(Number))
+    // 5th arg = the firing issue's id, threaded so the run records its origin.
+    expect(dispatch).toHaveBeenCalledWith(ws, headlessAdapter, 'go', expect.any(Number), 't1')
     expect(markers.get('w1', 't1')).toBe(NOW)
   })
 
@@ -152,7 +159,7 @@ describe('ScheduleScanner', () => {
     const { scanner, dispatch } = scannerFor([ws])
     await scanner.scan()
     expect(dispatch).toHaveBeenCalledTimes(1)
-    expect(dispatch).toHaveBeenCalledWith(ws, headlessAdapter, 'go', expect.any(Number))
+    expect(dispatch).toHaveBeenCalledWith(ws, headlessAdapter, 'go', expect.any(Number), 'sched')
     expect(scanner.snapshot()!.workspaces[0].tasks.map((t) => t.id)).toEqual(['sched'])
   })
 
@@ -162,7 +169,7 @@ describe('ScheduleScanner', () => {
     ])
     const { scanner, dispatch } = scannerFor([ws])
     await scanner.scan()
-    expect(dispatch).toHaveBeenCalledWith(ws, headlessAdapter, 'Do research\n\nscan movers', expect.any(Number))
+    expect(dispatch).toHaveBeenCalledWith(ws, headlessAdapter, 'Do research\n\nscan movers', expect.any(Number), 't1')
   })
 
   it('fires a never-fired cron issue whose occurrence is within the last tick (not never)', async () => {

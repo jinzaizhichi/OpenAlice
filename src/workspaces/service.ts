@@ -34,7 +34,10 @@ import {
   type ScheduleSnapshotWorkspace,
 } from './schedule/declaration.js';
 import {
+  detailIssue,
   snapshotBoardIssue,
+  type IssueDetail,
+  type IssueFiringMarkers,
   type IssuesSnapshot,
   type IssuesSnapshotIssue,
   type IssuesSnapshotWorkspace,
@@ -147,6 +150,10 @@ export interface WorkspaceService {
     adapter: CliAdapter,
     prompt: string,
     timeoutMs: number,
+    /** The firing issue's id, when dispatched by the ScheduleScanner; recorded on
+     *  the run as `issueId` so the issue detail's Activity feed can join on it.
+     *  Manual/external runs omit it. */
+    issueId?: string,
   ): Promise<{ taskId: string }>;
   /** Read-only scheduling projection of every workspace's `.alice/issues/`
    *  directory (scheduled issues only) + each task's last-fired marker and
@@ -156,6 +163,10 @@ export interface WorkspaceService {
    *  issues (scheduled or not), scheduled ones enriched with firing markers.
    *  Powers the global Issue board GET /api/issues. */
   issuesSnapshot(): Promise<IssuesSnapshot>;
+  /** Read-only DETAIL for one issue (markdown body + firing markers + its
+   *  headless run history, newest first). `null` when the workspace or the issue
+   *  id is absent. Powers GET /api/issues/:wsId/:id. */
+  issueDetail(wsId: string, id: string): Promise<IssueDetail | null>;
   /** The headless-task management plane (cross-workspace; powers GET /api/headless). */
   headlessTasks: HeadlessTaskRegistry;
   /** Where dispatched tasks' full stdout/stderr logs land (read by the output route). */
@@ -447,6 +458,9 @@ export async function createWorkspaceService(opts: CreateWorkspaceServiceOptions
     adapter: CliAdapter,
     prompt: string,
     timeoutMs: number,
+    // The firing issue's id, when this dispatch came from the ScheduleScanner.
+    // Manual/external runs (the workspace "run task" route) leave it undefined.
+    issueId?: string,
   ): Promise<{ taskId: string }> => {
     if (!adapter.capabilities.headless || !adapter.composeHeadlessCommand) {
       throw new Error(`adapter "${adapter.id}" has no headless mode`);
@@ -459,6 +473,7 @@ export async function createWorkspaceService(opts: CreateWorkspaceServiceOptions
       agent: adapter.id,
       prompt,
       startedAt: Date.now(),
+      ...(issueId ? { issueId } : {}),
     });
     // Fire-and-forget: run to natural exit, then fill the record. NOTE: status
     // is judged by exit code — pi can exit 0 on an in-band model error, so
@@ -596,6 +611,35 @@ export async function createWorkspaceService(opts: CreateWorkspaceServiceOptions
       }),
     );
     return { workspaces };
+  };
+
+  // Read-only DETAIL for ONE issue (GET /api/issues/:wsId/:id). Resolves the
+  // workspace, live-reads its issues, finds the matching id, enriches a scheduled
+  // issue with the SAME firing math as the board (so last/next agree), and joins
+  // the headless registry on wsId+issueId for the issue's run history (Activity
+  // feed). Returns null when the workspace, its issues dir, or the id is absent —
+  // the route maps that to a 404. Includes the markdown body (the list omits it).
+  const issueDetail = async (wsId: string, id: string): Promise<IssueDetail | null> => {
+    const ws = registry.get(wsId);
+    if (!ws) return null;
+    const res = await readWorkspaceIssues(ws.dir);
+    if (!res.ok) return null; // absent or unreadable issues dir ⇒ no such issue
+    const issue = res.issues.find((i) => i.id === id);
+    if (!issue) return null;
+    let markers: IssueFiringMarkers | null = null;
+    if (issue.when) {
+      const fired = snapshotScheduledIssue(
+        issue,
+        issue.when,
+        scheduleMarkers.get(ws.id, issue.id) ?? null,
+        Date.now(),
+        DEFAULT_INTERVAL_MS,
+      );
+      markers = { lastFiredAtMs: fired.lastFiredAtMs, nextDueAtMs: fired.nextDueAtMs };
+    }
+    // Newest-first already (registry.list reverses); filter to this issue's runs.
+    const runs = headlessTasks.list({ wsId: ws.id, issueId: issue.id });
+    return { issue: detailIssue(issue, markers), runs };
   };
 
   const pool = new SessionPool(
@@ -780,6 +824,7 @@ export async function createWorkspaceService(opts: CreateWorkspaceServiceOptions
     dispatchHeadlessTask: dispatchHeadlessTaskMethod,
     scheduleSnapshot,
     issuesSnapshot,
+    issueDetail,
     headlessTasks,
     headlessLogsDir,
     isShuttingDown: () => shuttingDown,

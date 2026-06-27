@@ -4,6 +4,7 @@ import type { ViewKind, ViewSpec } from './types'
 
 import { PortfolioPage } from '../pages/PortfolioPage'
 import { IssuePage } from '../pages/IssuePage'
+import { IssueDetailPage } from '../pages/IssueDetailPage'
 import { AutomationPage } from '../pages/AutomationPage'
 import { NewsPage } from '../pages/NewsPage'
 import { MarketPage } from '../pages/MarketPage'
@@ -71,6 +72,14 @@ const issueModule: ViewModule<'issue'> = {
   title: () => 'Issues',
   toUrl: () => '/issues',
   Component: () => <IssuePage />,
+}
+
+const issueDetailModule: ViewModule<'issue-detail'> = {
+  kind: 'issue-detail',
+  title: (spec) => spec.params.id,
+  toUrl: (spec) =>
+    `/issues/${encodeURIComponent(spec.params.wsId)}/${encodeURIComponent(spec.params.id)}`,
+  Component: ({ spec }) => <IssueDetailPage spec={spec} />,
 }
 
 const automationSectionTitle: Record<
@@ -260,6 +269,7 @@ const fileViewerModule: ViewModule<'file-viewer'> = {
 export const VIEWS = {
   portfolio: portfolioModule,
   issue: issueModule,
+  'issue-detail': issueDetailModule,
   automation: automationModule,
   news: newsModule,
   'market-list': marketListModule,

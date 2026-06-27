@@ -60,6 +60,10 @@ export interface ScheduleScannerDeps {
     adapter: CliAdapter,
     prompt: string,
     timeoutMs: number,
+    /** The firing issue's id — recorded on the run so the issue detail can show
+     *  its real run history. The scanner ALWAYS passes it (it only fires from an
+     *  issue); manual/external dispatch callers omit it. */
+    issueId?: string,
   ) => Promise<{ taskId: string }>
   markers: MarkerStore
   logger: Logger
@@ -210,7 +214,9 @@ export class ScheduleScanner {
       return
     }
     try {
-      const { taskId: runId } = await this.deps.dispatch(ws, adapter, what, RUN_TIMEOUT_MS)
+      // `taskId` here is the firing ISSUE's id (keyed by filename stem) — thread
+      // it so the run records which issue triggered it.
+      const { taskId: runId } = await this.deps.dispatch(ws, adapter, what, RUN_TIMEOUT_MS, taskId)
       await this.deps.markers.set(ws.id, taskId, nowMs)
       this.deps.logger.info('schedule.fired', { wsId: ws.id, taskId, agent: adapter.id, runId })
     } catch (err) {

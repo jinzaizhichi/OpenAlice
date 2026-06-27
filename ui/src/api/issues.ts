@@ -1,4 +1,5 @@
 import { fetchJson } from './client'
+import type { HeadlessTaskRecord } from './headless'
 import type { ScheduleWhen } from './schedule'
 
 /**
@@ -48,9 +49,52 @@ export interface IssueSnapshot {
   workspaces: IssueWorkspace[]
 }
 
+// ==================== Detail (Phase 2a) ====================
+// GET /api/issues/:wsId/:id — the read-only DETAIL shape: one issue's full
+// fields INCLUDING the markdown body and (iff scheduled) its firing markers +
+// scheduling frontmatter, plus that issue's headless run history (its Activity
+// feed). Mirrors the server's `IssueDetail` / `IssueDetailIssue` in
+// `src/workspaces/issues/board.ts`. Demo handlers MUST import these types.
+
+/** One issue's full detail fields: the board row's fields + the markdown body +
+ *  the scheduling frontmatter (`what`/`agent`). Markers present iff scheduled. */
+export interface IssueDetailIssue {
+  id: string
+  title: string
+  /** Markdown description body (the list omits this; the detail loads it). */
+  body: string
+  status: IssueStatus
+  priority: IssuePriority
+  assignee: string
+  /** Present iff the issue self-schedules. */
+  when?: ScheduleWhen
+  /** Scheduled fire prompt override (frontmatter `what`), if set. */
+  what?: string
+  /** Adapter id for the scheduled fire (frontmatter `agent`), if set. */
+  agent?: string
+  /** Scanner last-fired marker (epoch ms) — scheduled issues only. */
+  lastFiredAtMs?: number | null
+  /** Computed next fire (epoch ms) — scheduled issues only. */
+  nextDueAtMs?: number | null
+}
+
+/** GET /api/issues/:wsId/:id — one issue + its run history (Activity feed). */
+export interface IssueDetail {
+  issue: IssueDetailIssue
+  /** This issue's headless runs (wsId + issueId match), newest first. */
+  runs: HeadlessTaskRecord[]
+}
+
 export const issuesApi = {
   /** Read-only board: every workspace's issues, scanned across all workspaces. */
   async get(): Promise<IssueSnapshot> {
     return fetchJson<IssueSnapshot>('/api/issues')
+  },
+
+  /** Read-only detail: one issue's full fields + markdown body + its run feed. */
+  async getDetail(wsId: string, id: string): Promise<IssueDetail> {
+    return fetchJson<IssueDetail>(
+      `/api/issues/${encodeURIComponent(wsId)}/${encodeURIComponent(id)}`,
+    )
   },
 }

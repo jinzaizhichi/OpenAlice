@@ -1,4 +1,5 @@
-import type { IssueSnapshot } from '../../api/issues'
+import type { HeadlessTaskRecord } from '../../api/headless'
+import type { IssueDetail, IssueSnapshot } from '../../api/issues'
 
 // GET /api/issues aggregates every workspace's declared issues by SCANNING
 // each workspace's `.alice/issues/<id>.md` dir (one markdown file per issue) —
@@ -110,4 +111,235 @@ export const demoIssuesSnapshot: IssueSnapshot = {
       ],
     },
   ],
+}
+
+// ==================== Detail (Phase 2a) ====================
+// GET /api/issues/:wsId/:id returns the read-only IssueDetail: one issue's full
+// fields INCLUDING the markdown body + scheduling frontmatter (what/agent), plus
+// that issue's headless run history (its Activity feed). The board list omits
+// both. The detail issue's display fields are derived from the board snapshot
+// above (single source of truth), so the two surfaces never drift; the extras
+// below supply only what the list doesn't carry.
+//
+// `runs` are HeadlessTaskRecord-shaped exactly as GET /api/headless returns —
+// already filtered to this issue (wsId + issueId match) and newest-first, as the
+// real endpoint does. Coverage: all four run statuses (done / running / failed /
+// interrupted), a never-fired scheduled issue (empty feed), and unscheduled work
+// items (no runs — issueId is only recorded on scheduled fires).
+
+interface IssueDetailExtras {
+  /** Markdown body the list view drops; rendered in the detail main column. */
+  body: string
+  /** Scheduling frontmatter `what` (fire-prompt override), if set. */
+  what?: string
+  /** Scheduling frontmatter `agent` (adapter id), if set. */
+  agent?: string
+  /** This issue's headless runs, newest-first (Activity feed). */
+  runs: HeadlessTaskRecord[]
+}
+
+// Keyed by `${wsId}/${id}`. Issues absent here fall back to a generic body + no
+// runs (see demoIssueDetail) so every board row opens cleanly in the demo.
+const demoIssueExtras: Record<string, IssueDetailExtras> = {
+  'demo-ws-auto-quant/morning-scan': {
+    body: [
+      'Scan the pre-market movers and surface anything the book should react to before the open.',
+      '',
+      '## What to look for',
+      '',
+      '- Gap-ups / gap-downs **> 5%** on above-average volume',
+      '- Names with overnight news (earnings, guidance, M&A)',
+      '- Anything touching an open position or a watchlist thesis',
+      '',
+      '## Output',
+      '',
+      'Push a short ranked list to the Inbox — ticker, gap %, the one-line why, and whether it touches the book.',
+    ].join('\n'),
+    what: 'Run the morning movers scan and push a ranked Inbox digest.',
+    agent: 'codex',
+    runs: [
+      {
+        taskId: 'demo-run-morning-1',
+        wsId: 'demo-ws-auto-quant',
+        agent: 'codex',
+        prompt: 'Run the morning movers scan and push a ranked Inbox digest.',
+        status: 'done',
+        startedAt: now - HOUR,
+        finishedAt: now - HOUR + 84_000,
+        durationMs: 84_000,
+        exitCode: 0,
+        agentSessionId: '019eb75e-0b1b-7fa2-ba95-fd7db4463afe',
+      },
+      {
+        taskId: 'demo-run-morning-2',
+        wsId: 'demo-ws-auto-quant',
+        agent: 'codex',
+        prompt: 'Run the morning movers scan and push a ranked Inbox digest.',
+        status: 'failed',
+        startedAt: now - DAY,
+        finishedAt: now - DAY + 12_000,
+        durationMs: 12_000,
+        exitCode: 1,
+        error: 'market-data provider timed out (OpenBB upstream 504)',
+      },
+      {
+        taskId: 'demo-run-morning-3',
+        wsId: 'demo-ws-auto-quant',
+        agent: 'codex',
+        prompt: 'Run the morning movers scan and push a ranked Inbox digest.',
+        status: 'done',
+        startedAt: now - 2 * DAY,
+        finishedAt: now - 2 * DAY + 79_000,
+        durationMs: 79_000,
+        exitCode: 0,
+        agentSessionId: '019eb6aa-2c4f-7b10-9d22-aa1c0f7711be',
+      },
+    ],
+  },
+  'demo-ws-auto-quant/thesis-watch': {
+    body: [
+      'Watch the active theses for invalidation and ping the desk the moment one breaks.',
+      '',
+      'Each thesis lives in `theses/*.md` with an explicit invalidation level. This run',
+      're-checks every one against the latest quote and flags breaches.',
+    ].join('\n'),
+    agent: 'claude',
+    runs: [
+      {
+        taskId: 'demo-run-thesis-1',
+        wsId: 'demo-ws-auto-quant',
+        agent: 'claude',
+        prompt: 'Re-check every active thesis against the latest quotes; flag invalidations.',
+        status: 'running',
+        startedAt: now - 2 * 60_000,
+        agentSessionId: '414d6b8c-95b4-4e01-8ffc-4b6332da17d4',
+      },
+      {
+        taskId: 'demo-run-thesis-2',
+        wsId: 'demo-ws-auto-quant',
+        agent: 'claude',
+        prompt: 'Re-check every active thesis against the latest quotes; flag invalidations.',
+        status: 'done',
+        startedAt: now - HOUR / 2,
+        finishedAt: now - HOUR / 2 + 31_000,
+        durationMs: 31_000,
+        exitCode: 0,
+      },
+      {
+        taskId: 'demo-run-thesis-3',
+        wsId: 'demo-ws-auto-quant',
+        agent: 'claude',
+        prompt: 'Re-check every active thesis against the latest quotes; flag invalidations.',
+        status: 'interrupted',
+        startedAt: now - 2 * HOUR,
+        finishedAt: now - 2 * HOUR + 4_000,
+        killed: true,
+        signal: 'SIGTERM',
+      },
+    ],
+  },
+  'demo-ws-macro/weekly-digest': {
+    body: [
+      '# Weekly macro digest',
+      '',
+      'Pull the week into one readable note: rates, FX, the data that printed, and the',
+      'data on deck. Friday close.',
+      '',
+      '1. **Rates** — UST curve moves, any repricing of the cut path',
+      '2. **FX** — DXY + the majors',
+      '3. **Prints** — what surprised vs consensus',
+      '4. **Next week** — the calendar that matters',
+    ].join('\n'),
+    what: 'Write the weekly macro digest and push it to the Inbox.',
+    agent: 'codex',
+    runs: [
+      {
+        taskId: 'demo-run-digest-1',
+        wsId: 'demo-ws-macro',
+        agent: 'codex',
+        prompt: 'Write the weekly macro digest and push it to the Inbox.',
+        status: 'done',
+        startedAt: now - 2 * DAY,
+        finishedAt: now - 2 * DAY + 156_000,
+        durationMs: 156_000,
+        exitCode: 0,
+        agentSessionId: '019eb5c1-7d80-7a44-8f3e-3b6e2c9d4401',
+      },
+      {
+        taskId: 'demo-run-digest-2',
+        wsId: 'demo-ws-macro',
+        agent: 'codex',
+        prompt: 'Write the weekly macro digest and push it to the Inbox.',
+        status: 'done',
+        startedAt: now - 9 * DAY,
+        finishedAt: now - 9 * DAY + 141_000,
+        durationMs: 141_000,
+        exitCode: 0,
+      },
+    ],
+  },
+  // Scheduled one-shot that has never fired — exercises the empty Activity feed.
+  'demo-ws-macro/cpi-release-note': {
+    body: [
+      'Draft the reaction note the moment CPI prints.',
+      '',
+      'Lead with the headline vs core surprise, then the rates/FX read-through in two',
+      'sentences. Keep it under 150 words — this goes out fast.',
+    ].join('\n'),
+    what: 'Draft the CPI reaction note as soon as the print lands.',
+    agent: 'claude',
+    runs: [],
+  },
+  // Unscheduled work items — body only, no runs (issueId is recorded only on
+  // scheduled fires, so these have no Activity feed).
+  'demo-ws-auto-quant/rebalance-sizing-review': {
+    body: [
+      'The sizing logic in `rebalance.ts` rounds lot sizes in a way that drifts the',
+      'target weights on small books. A human should sanity-check the rounding before',
+      'we let the scheduler touch it.',
+      '',
+      '- [ ] Confirm the drift is real on the $25k paper book',
+      '- [ ] Decide: round-to-lot vs allow fractional',
+    ].join('\n'),
+    runs: [],
+  },
+  'demo-ws-auto-quant/prune-stale-signals': {
+    body: 'Old signal-cache entries are never evicted. Add a TTL sweep so the cache stops growing unbounded.',
+    runs: [],
+  },
+  'demo-ws-macro/fed-speaker-calendar': {
+    body: 'Done — the upcoming Fed speaker calendar is summarized in `notes/fed-speakers.md` with hawk/dove leanings.',
+    runs: [],
+  },
+  'demo-ws-macro/cross-asset-correlation': {
+    body: 'Canceled — superseded by the dealer-positioning work; the correlation study was duplicating that lens.',
+    runs: [],
+  },
+}
+
+/** Locate a board issue (+ its workspace) by id, so the detail's display fields
+ *  derive from the same source as the list. Returns null if no such row exists. */
+function findBoardIssue(wsId: string, id: string) {
+  const ws = demoIssuesSnapshot.workspaces.find((w) => w.wsId === wsId)
+  return ws?.issues.find((i) => i.id === id) ?? null
+}
+
+/** Build the IssueDetail the GET /api/issues/:wsId/:id mock returns, or null if
+ *  the (wsId, id) pair doesn't exist on the board (→ 404). Display fields come
+ *  from the board snapshot; body / what / agent / runs come from the extras map
+ *  (with a generic-body, no-runs fallback so any row opens). */
+export function demoIssueDetail(wsId: string, id: string): IssueDetail | null {
+  const boardIssue = findBoardIssue(wsId, id)
+  if (!boardIssue) return null
+  const extras = demoIssueExtras[`${wsId}/${id}`]
+  const body = extras?.body ?? `${boardIssue.title}\n\n(No description.)`
+  return {
+    issue: {
+      ...boardIssue,
+      body,
+      ...(extras?.what ? { what: extras.what } : {}),
+      ...(extras?.agent ? { agent: extras.agent } : {}),
+    },
+    runs: extras?.runs ?? [],
+  }
 }

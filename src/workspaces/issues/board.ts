@@ -12,6 +12,7 @@
  */
 
 import type { Schedule } from '../../core/schedule-expr.js'
+import type { HeadlessTaskRecord } from '../headless-task-registry.js'
 import type { IssuePriority, IssueRecord, IssueStatus } from './declaration.js'
 
 /** One board row: the issue's display fields, plus — iff it self-schedules — its
@@ -51,6 +52,61 @@ export interface IssuesSnapshot {
 export interface IssueFiringMarkers {
   lastFiredAtMs: number | null
   nextDueAtMs: number | null
+}
+
+// ==================== Detail (Phase 2a) ====================
+// The read-only shape GET /api/issues/:wsId/:id returns: one issue's full
+// fields INCLUDING the markdown body and (iff scheduled) its firing markers +
+// scheduling frontmatter, plus that issue's headless run history (its Activity
+// feed). Unlike the board list, the detail loads the body and the runs.
+
+/** One issue's full detail fields: the board row's fields + the markdown body +
+ *  the scheduling frontmatter (`what`/`agent`). Markers are present iff scheduled. */
+export interface IssueDetailIssue {
+  id: string
+  title: string
+  /** Markdown description body (the list view omits this; the detail loads it). */
+  body: string
+  status: IssueStatus
+  priority: IssuePriority
+  assignee: string
+  /** Present iff the issue self-schedules. */
+  when?: Schedule
+  /** Scheduled fire prompt override (frontmatter `what`), if set. */
+  what?: string
+  /** Adapter id for the scheduled fire (frontmatter `agent`), if set. */
+  agent?: string
+  /** When the scanner last fired this issue (epoch ms); only for scheduled issues. */
+  lastFiredAtMs?: number | null
+  /** When it is next due (epoch ms); only for scheduled issues. */
+  nextDueAtMs?: number | null
+}
+
+/** GET /api/issues/:wsId/:id — one issue + its run history (Activity feed). */
+export interface IssueDetail {
+  issue: IssueDetailIssue
+  /** This issue's headless runs (wsId + issueId match), newest first. */
+  runs: HeadlessTaskRecord[]
+}
+
+/** Map a validated issue (+ its firing markers, iff scheduled) to the detail
+ *  issue shape. Keeps the body and the scheduling frontmatter the board drops. */
+export function detailIssue(
+  issue: IssueRecord,
+  markers: IssueFiringMarkers | null,
+): IssueDetailIssue {
+  return {
+    id: issue.id,
+    title: issue.title,
+    body: issue.body,
+    status: issue.status,
+    priority: issue.priority,
+    assignee: issue.assignee,
+    ...(issue.when ? { when: issue.when } : {}),
+    ...(issue.what ? { what: issue.what } : {}),
+    ...(issue.agent ? { agent: issue.agent } : {}),
+    ...(markers ? { lastFiredAtMs: markers.lastFiredAtMs, nextDueAtMs: markers.nextDueAtMs } : {}),
+  }
 }
 
 /** Map one validated issue (+ its firing markers, iff scheduled) to a board row.

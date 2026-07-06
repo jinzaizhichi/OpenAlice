@@ -4,7 +4,7 @@ import { delimiter, join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { detectBinary, findExecutableOnPath, runtimeInstallOverride } from './agent-detect.js';
+import { detectAgentBinary, detectBinary, findExecutableOnPath, runtimeInstallOverride } from './agent-detect.js';
 
 let dir: string;
 
@@ -78,6 +78,32 @@ describe('detectBinary', () => {
       installed: false,
       path: null,
     });
+  });
+});
+
+describe('detectAgentBinary', () => {
+  it('reports managed Pi as installed before searching PATH', async () => {
+    const managedPi = await touch('managed-pi');
+    const pathPi = await touch('pi');
+    expect(detectAgentBinary('pi', 'pi', {
+      platform: 'linux',
+      env: {
+        OPENALICE_MANAGED_PI_PATH: managedPi,
+        PATH: dir,
+      },
+    })).toEqual({ installed: true, path: managedPi });
+    expect(findExecutableOnPath('pi', { platform: 'linux', env: { PATH: dir } })).toBe(pathPi);
+  });
+
+  it('falls back to PATH when managed Pi path is absent or invalid', async () => {
+    const pathPi = await touch('pi');
+    expect(detectAgentBinary('pi', 'pi', {
+      platform: 'linux',
+      env: {
+        OPENALICE_MANAGED_PI_PATH: join(dir, 'missing-pi'),
+        PATH: dir,
+      },
+    })).toEqual({ installed: true, path: pathPi });
   });
 });
 

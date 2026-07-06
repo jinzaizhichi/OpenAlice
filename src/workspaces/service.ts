@@ -10,7 +10,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { basename, delimiter as pathDelimiter, join } from 'node:path';
+import { basename, join } from 'node:path';
 
 import { cliBinPath } from '@/core/paths.js';
 import { readIssueDefaultAgent, readWorkspaceDefaultAgent } from '@/core/config.js';
@@ -70,7 +70,7 @@ import { terminalThemeEnv } from './terminal-theme.js';
 import { readReadmeVersion, TemplateRegistry } from './template-registry.js';
 import { readWorkspaceMetadata } from './workspace-metadata.js';
 import { TranscriptWatcher } from './transcript-watcher.js';
-import { detectBinary, runtimeInstallOverride, type AgentAvailability } from './agent-detect.js';
+import { detectAgentBinary, runtimeInstallOverride, type AgentAvailability } from './agent-detect.js';
 import { resolveLaunchCommand } from './win-command.js';
 import { WorkspaceCreator } from './workspace-creator.js';
 import { WorkspaceRegistry, type WorkspaceMeta } from './workspace-registry.js';
@@ -383,7 +383,7 @@ export async function createWorkspaceService(opts: CreateWorkspaceServiceOptions
       // from its shell (it reads OPENALICE_TOOL_URL + AQ_WS_ID above). Shared
       // script — not written into the workspace, so it never pollutes the
       // workspace's git repo.
-      PATH: `${cliBinPath()}${pathDelimiter}${process.env.PATH ?? ''}`,
+      OPENALICE_WORKSPACE_CLI_BIN_PATH: cliBinPath(),
       // Per-workspace git identity — so any commit the agent makes (in its own
       // repo OR a peer's, during cross-workspace collaboration) self-attributes
       // to this workspace, and never fails for a missing identity on a clean
@@ -916,7 +916,7 @@ export async function createWorkspaceService(opts: CreateWorkspaceServiceOptions
         continue;
       }
       // No declared binary (shell → `$SHELL`) is always available.
-      out[a.id] = a.binary ? detectBinary(a.binary, { env }) : { installed: true, path: null };
+      out[a.id] = a.binary ? detectAgentBinary(a.id, a.binary, { env }) : { installed: true, path: null };
     }
     return out;
   };

@@ -23,11 +23,24 @@
 import { existsSync, statSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
 
+import { runtimeProfileFromEnv } from '@/core/runtime-profile.js';
+
 export interface AgentAvailability {
   /** True iff the binary resolved to a real file on PATH. */
   readonly installed: boolean;
   /** Absolute path the binary resolved to, or null when not found. */
   readonly path: string | null;
+}
+
+export function detectAgentBinary(
+  id: string,
+  binary: string,
+  opts: { platform?: NodeJS.Platform; env?: NodeJS.ProcessEnv } = {},
+): AgentAvailability {
+  const env = opts.env ?? process.env;
+  const managed = id === 'pi' ? runtimeProfileFromEnv(env).managedPiPath : null;
+  if (managed && isFile(managed)) return { installed: true, path: managed };
+  return detectBinary(binary, opts);
 }
 
 export function runtimeInstallOverride(

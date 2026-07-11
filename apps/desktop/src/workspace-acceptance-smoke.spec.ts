@@ -14,5 +14,6 @@ describe('Workspace acceptance renderer source', () => {
       expect(source).toContain(`"printf '__OPENALICE_%s_OK__\\\\n' '${marker}'"`)
     }
     expect(source).toContain('__OPENALICE_WORKSPACE_CLI_STEP_FAILED__ %s %s\\\\n%s\\\\n')
+    expect(() => new Function(`return ${source}`)).not.toThrow()
   })
 })

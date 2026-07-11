@@ -93,7 +93,10 @@ describe('CLI launchers and payload', () => {
           AQ_WS_ID: 'ws1',
           OPENALICE_TOOL_SOCKET: socketPath,
           OPENALICE_TOOL_URL: '/cli',
+          OPENALICE_CLI_DEBUG: '1',
       })
+      expect(stdout).toContain('[openalice-cli-debug] runtime')
+      expect(stdout).toContain('[openalice-cli-debug] socket.response')
       expect(stdout).toContain('OpenAlice CLI')
       expect(stdout).toContain('market')
       expect(seen).toEqual(['/cli/ws1/data/manifest'])

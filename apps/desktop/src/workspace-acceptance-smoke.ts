@@ -136,7 +136,7 @@ export async function runRendererWorkspaceAcceptanceSmoke(
           // Capture a failing command's stderr and report it through stdout.
           // Electron's Windows GUI binary can otherwise make a child stderr
           // failure look like a silent PTY timeout.
-          'oa_step alice-manifest alice --help',
+          'oa_step alice-manifest env OPENALICE_CLI_DEBUG=1 alice --help',
           'oa_step alice-workspace-manifest alice-workspace --help',
           'oa_step traderhub-manifest traderhub --help',
           'oa_step alice-uta-manifest alice-uta --help',

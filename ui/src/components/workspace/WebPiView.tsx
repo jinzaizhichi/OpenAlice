@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
-import { Bot, LoaderCircle, Send, Square, User } from 'lucide-react'
+import { LoaderCircle, Send, Square } from 'lucide-react'
 
 import { MarkdownContent } from '../MarkdownContent'
 import {
@@ -163,9 +163,7 @@ function PiMessage({ value }: { readonly value: unknown }): ReactElement {
   const content = record?.['content']
   return (
     <article className={`webpi-message is-${user ? 'user' : tool ? 'tool' : 'assistant'}`}>
-      <div className="webpi-avatar">{user ? <User size={14} /> : <Bot size={14} />}</div>
       <div className="webpi-message-body">
-        <div className="webpi-role">{user ? 'You' : tool ? String(record?.['toolName'] ?? 'Tool') : 'Pi'}</div>
         {tool && record
           ? <PiToolResult record={record} />
           : <PiContent value={content ?? value} />}

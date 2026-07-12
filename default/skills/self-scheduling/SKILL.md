@@ -1,19 +1,12 @@
 ---
 name: self-scheduling
 description: >
-  Track and self-schedule work for THIS workspace by writing one markdown file
-  per issue under `.alice/issues/<id>.md` at the workspace root. Each file is
-  YAML frontmatter + one canonical markdown What. An issue WITHOUT a `when` field is
-  just a tracked work item (it shows on the Issue board, the scanner ignores
-  it). An issue WITH a `when` field self-schedules: the launcher scans the dir
-  and, when it's due, dispatches the Workspace or assigned product Session with
-  your prompt; the run reports back to the user's Inbox. Use for: "track this",
-  "add an issue/todo", "run this every 30 minutes", "every morning before the
-  open do X", "check Y each hour and ping me only if Z", "do this once at 4pm",
-  "self-schedule", "set up a recurring job". Manage issues either by editing
-  the files directly or with the `alice-workspace issue …` CLI (list / show /
-  create / update / comment); the same tools are also exposed over MCP (one
-  adapter).
+  Define durable work and scheduled/headless execution with
+  `.alice/issues/<id>.md`: structured ownership and optional `when` frontmatter
+  plus one canonical markdown What. Use for creating or editing an Issue,
+  choosing its assignee, schedule, prompt, delivery behavior, or health state.
+  Use the `alice-workspace` skill instead when the goal is to ask another
+  Session for an answer.
 ---
 
 # Issues & self-scheduling — `.alice/issues/<id>.md`
@@ -77,7 +70,8 @@ alice-workspace issue create --title "Split the data fetcher" \
 alice-workspace issue update --id morning-scan --status done
 
 # comment — append markdown to the structured `<id>.comments.json` sidecar, authored as
-# ws:<this workspace>. Use it for a progress note, finding, or a question.
+# ws:<this workspace>. Use it for a human-visible progress note or finding. It
+# does not contact an Agent; use `issue ask` when you need a reply.
 alice-workspace issue comment --id morning-scan --text "Brief pushed; SPY gapped +0.4%."
 ```
 

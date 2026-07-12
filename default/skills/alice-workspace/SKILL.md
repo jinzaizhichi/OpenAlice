@@ -1,24 +1,30 @@
 ---
 name: alice-workspace
 description: >
-  Agent collaboration on your shell PATH via the `alice-workspace` CLI: push
-  finished work to the user's Inbox (`inbox push`, with repeatable `--doc`
-  file attachments), read the inbox back (`inbox read`, `--self` for your own
-  pushes), locate a peer workspace's files (`peer path`) and product Sessions
-  (`peer sessions`), ask attributable peer Sessions and await their replies
-  (`conversation ask` / `conversation await`),
-  track entities across workspaces (`track`), and read & manage the
-  cross-workspace issue board (`issue list`/`show`/`create`/`update`/`comment`).
-  Use for: "push my findings to the inbox", "surface this report to the user",
-  "what did I already report?", "read the file another workspace sent", "track
-  this ticker", "what's on the issue board?", "what was I working on?", "add or
-  update an issue", "ask the agent who produced this Inbox result", "why was
-  this Issue created?". Workspaces collaborate through git — commit before you push,
-  and commit after you edit a peer's files. Discover flags with
-  `alice-workspace --help` — do NOT guess.
+  Use the `alice-workspace` CLI for collaboration and provenance: Inbox
+  delivery, the global Issue board, tracked entities, peer files, and asking an
+  attributable product Session. Use it when work must be surfaced, remembered,
+  assigned, or followed back to the Agent that produced it. Read live help;
+  never guess flags or use `issue comment` as a substitute for `issue ask`.
 ---
 
 # Collaboration — `alice-workspace`
+
+Choose the verb from the intent, not from whichever object you happen to have:
+
+| Intent | Command family |
+|---|---|
+| Tell the human about finished/asynchronous work | `inbox push` |
+| Read what desks already surfaced | `inbox read` |
+| Ask why one Inbox entry was produced | `inbox ask` |
+| Inspect the shared work board | `issue list` / `issue show` |
+| Ask an Issue's creator, owner, or selected run | `issue ask` |
+| Record a note on this Workspace's own Issue | `issue comment` |
+| Ask by a known product Session/Workspace only when no business object exists | `conversation ask` |
+
+`issue comment` is a structured note for the human-visible board. It is a
+local write and **does not message or resume another agent**. When the goal is
+to obtain an answer, use `inbox ask` or `issue ask`, normally with `--await`.
 
 **Hand finished work back to the user** — this is the outbound channel. It posts
 to the user's Inbox tab:

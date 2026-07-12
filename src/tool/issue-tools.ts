@@ -69,6 +69,31 @@ function selfDir(ctx: WorkspaceToolContext): { ok: true; dir: string } | { ok: f
   return { ok: true, dir: meta.dir }
 }
 
+/**
+ * A durable Workspace can carry an older copy of the injected skill manual.
+ * Keep the live CLI error self-correcting: if a local write misses but the
+ * global board knows the Issue, explain the collaboration action instead of
+ * leaving the agent to guess that `comment` might message a peer.
+ */
+async function remoteIssueWriteHint(ctx: WorkspaceToolContext, id: string): Promise<string> {
+  if (!ctx.board) return ''
+  try {
+    const refs = await ctx.board.resolveByName(id)
+    const remote = refs.filter((ref) => ref.wsId !== ctx.workspaceId)
+    if (remote.length === 0) return ''
+    if (remote.length > 1) {
+      const labels = remote.map((ref) => `${ref.wsTag}/${ref.id}`).join(', ')
+      return `; global matches exist in other workspaces (${labels}). This command writes only this workspace. Inspect with issue show; to contact a responsible Session use issue ask with an unambiguous Issue name.`
+    }
+    const [ref] = remote
+    return `; a global match belongs to ${ref.wsTag}/${ref.id}. This command writes only this workspace. To get an answer from its responsible Session, use issue ask --id ${JSON.stringify(ref.id)} --owner --prompt <question> --await.`
+  } catch {
+    // The original local-write failure is still useful. Board lookup is an
+    // optional diagnostic and must never turn a clean tool error into a throw.
+    return ''
+  }
+}
+
 const issueAssigneeInputSchema = z.string().min(1).refine(
   (value) => value.toLowerCase() === '@me' || issueAssigneeSchema.safeParse(normalizeIssueAssigneeAlias(value)).success,
   'assignee must be @me, @workspace, @human, @unassigned, or an exact @resumeId',
@@ -288,7 +313,10 @@ export const issueUpdateFactory: WorkspaceToolFactory = {
           await recordIssueProvenance(ctx, res.issue.id, 'updated')
           return { ok: true as const, issue: rowOf(res.issue) }
         }
-        if (res.reason === 'not_found') return { ok: false as const, error: `no such issue: ${id}` }
+        if (res.reason === 'not_found') {
+          const remoteHint = await remoteIssueWriteHint(ctx, id)
+          return { ok: false as const, error: `no such issue in this workspace: ${id}${remoteHint}` }
+        }
         return { ok: false as const, error: res.error }
       },
     })
@@ -321,7 +349,10 @@ export const issueCommentFactory: WorkspaceToolFactory = {
           await recordIssueProvenance(ctx, res.issue.id, 'commented')
           return { ok: true as const, issue: rowOf(res.issue) }
         }
-        if (res.reason === 'not_found') return { ok: false as const, error: `no such issue: ${id}` }
+        if (res.reason === 'not_found') {
+          const remoteHint = await remoteIssueWriteHint(ctx, id)
+          return { ok: false as const, error: `no such issue in this workspace: ${id}${remoteHint}` }
+        }
         return { ok: false as const, error: res.error }
       },
     })

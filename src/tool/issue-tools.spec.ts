@@ -382,6 +382,17 @@ describe('global board (ctx.board present)', () => {
     expect(list.invalid).toEqual([{ wsId: 'ws-c', tag: 'broken', error: 'retired .alice/issue.json' }])
   })
 
+  it('redirects a failed local write to the attributable cross-workspace ask flow', async () => {
+    const result = await run(issueCommentFactory.build(boardCtx()), {
+      id: 'shared-b',
+      text: 'why?',
+    })
+    expect(result.ok).toBe(false)
+    expect(result.error).toContain('writes only this workspace')
+    expect(result.error).toContain('issue ask --id "shared-b" --owner')
+    expect(result.error).toContain('--await')
+  })
+
   it('issue_list summary hides low-priority global noise but keeps local issues', async () => {
     const list = await run(issueListFactory.build(boardCtx()), {})
     expect(list.ok).toBe(true)

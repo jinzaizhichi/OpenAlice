@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
@@ -21,8 +21,9 @@ afterEach(async () => {
 describe('temporary desktop package ownership', () => {
   it('uses the persistent package root unless an explicit root is supplied', () => {
     expect(resolveDesktopPackageRootArg([])).toBe(DEFAULT_DESKTOP_PACKAGE_ROOT)
-    expect(resolveDesktopPackageRootArg(['--package-root', 'build/app'], '/repo')).toBe('/repo/build/app')
-    expect(resolveDesktopPackageRootArg(['--', '--package-root', 'build/app'], '/repo')).toBe('/repo/build/app')
+    const expected = resolve('/repo', 'build/app')
+    expect(resolveDesktopPackageRootArg(['--package-root', 'build/app'], '/repo')).toBe(expected)
+    expect(resolveDesktopPackageRootArg(['--', '--package-root', 'build/app'], '/repo')).toBe(expected)
     expect(() => resolveDesktopPackageRootArg(['--package-root'])).toThrow('usage: --package-root <path>')
   })
 

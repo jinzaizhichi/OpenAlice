@@ -53,7 +53,7 @@ export function ConnectorStatusPage() {
             )}
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[13px] text-text-muted hover:text-text hover:border-accent/50 disabled:opacity-50"
+              className="oa-pressable inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[13px] text-text-muted hover:text-text hover:border-accent/50 disabled:opacity-50"
               disabled={refreshing}
               onClick={() => void load(true)}
             >
@@ -62,7 +62,7 @@ export function ConnectorStatusPage() {
             </button>
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-white hover:bg-accent/90"
+              className="oa-pressable inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-white hover:bg-accent/90"
               onClick={configure}
             >
               <Settings2 size={14} />
@@ -110,7 +110,7 @@ function ConnectorOverview({
 
   return (
     <>
-      <section className="rounded-2xl border border-border bg-bg-secondary/35 p-5 md:p-6">
+      <section className="oa-status-surface rounded-2xl border border-border bg-bg-secondary/35 p-5 md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-bg text-text-muted">
@@ -166,7 +166,7 @@ function ConnectorOverview({
             })
 
             return (
-              <article key={definition.id} className="rounded-2xl border border-border bg-bg-secondary/25 p-5">
+              <article key={definition.id} className="oa-status-surface rounded-2xl border border-border bg-bg-secondary/25 p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">

@@ -98,6 +98,37 @@ not ordinary operator-entered configuration.
 Both adapters reject commands from any account other than the linked owner.
 Use `/status` for adapter health and `/test` for an explicit delivery check.
 
+### Setup lifecycle and UI ownership
+
+Connector setup is a lifecycle, not a single `enabled` checkbox. Keep these
+states explicit because collapsing them recreates the dead end where a token is
+saved but no bot process exists to receive `/link`.
+
+| Product state | Durable facts | Runtime fact | Primary action |
+|---|---|---|---|
+| Credentials needed | required secret/fields missing | adapter stopped | create the platform bot and save credentials |
+| Ready to link | credentials sealed, owner absent | adapter stopped | start the bot for linking |
+| Starting | adapter enabled, owner absent | Guardian/service reconciling | wait; Settings polls health without replacing form drafts |
+| Awaiting link | credentials sealed, owner absent | bot online with `awaiting_link` | open the private bot chat and send `/link` |
+| Linked | owner identity learned | adapter `healthy` | send tests or receive Inbox delivery |
+| Linked offline | owner identity retained | adapter/service intentionally stopped | start the connector when external delivery is wanted |
+| Error | durable config retained | adapter `degraded` or service unavailable | inspect credentials and Connector logs |
+
+The surfaces deliberately have different jobs:
+
+- **Settings → Connectors** owns credentials, the setup sequence, enable/stop,
+  linking instructions, and explicit test sends.
+- **Beta → Connectors** is a read-only operations view: service health, adapter
+  status, linked owner, and last delivery evidence.
+- **Dev Panel** may expose logs and replay tooling, but it is not a product
+  configuration surface.
+
+The Connector Service switch is a global kill switch. Starting an adapter from
+the setup flow may enable the service and adapter together; stopping the global
+service never deletes sealed credentials or the learned owner. Health polling
+during linking updates runtime health only. It must not replace the current
+Settings draft, reveal secrets, or create an auto-save/restart loop.
+
 ## Health Contract and Tests
 
 UTA and Connector Service are both optional external services. Alice probes

@@ -168,6 +168,8 @@ Read the relevant guide before editing its subsystem:
   remote-host safety, persistence, health, and container acceptance.
 - [[docs/connector-service.md]] — [Connector Service](docs/connector-service.md): optional external Inbox
   notification adapters, sealed credentials, health, and Guardian lifecycle.
+- [[docs/ui-interaction-and-motion.md]] — [UI interaction and motion](docs/ui-interaction-and-motion.md):
+  clickable affordances, shared motion primitives, and reduced-motion policy.
 - [[docs/workspace-agent-guidance.md]] — [Workspace agent guidance](docs/workspace-agent-guidance.md): prompt
   layers, skill ownership, live CLI authority, and guidance versioning.
 - [[docs/workspace-lifecycle.md]] — [Workspace and Session lifecycle](docs/workspace-lifecycle.md): offboarding,

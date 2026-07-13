@@ -265,7 +265,7 @@ export function ActivityBar({
                   />
                 )}
                 {showItems && (
-                  <div className={`flex flex-col ${denseRail ? 'gap-1 md:gap-px' : 'gap-1'}`} id={`activity-section-${si}`}>
+                  <div className={`oa-disclosure-enter flex flex-col ${denseRail ? 'gap-1 md:gap-px' : 'gap-1'}`} id={`activity-section-${si}`}>
                     {section.items.map((item) => {
                       const sec = activitySectionFor(item.page)
                       const isActive = selectedSidebar === sec
@@ -281,7 +281,7 @@ export function ActivityBar({
                           type="button"
                           onClick={handleClick}
                           title={t(item.labelKey)}
-                          className={`relative flex items-center rounded-md transition-colors text-left ${
+                          className={`oa-nav-item relative flex items-center rounded-md text-left ${
                             compactRail
                               ? denseRail
                                 ? 'md:h-[26px] md:w-8 md:min-h-[26px] md:justify-center md:gap-0 md:px-0 md:py-0'
@@ -302,7 +302,7 @@ export function ActivityBar({
                             }`}
                             aria-hidden
                           />
-                          <span className={`relative flex items-center justify-center w-5 h-5 shrink-0 ${denseRail ? 'md:w-3.5 md:h-3.5' : ''}`}>
+                          <span className={`oa-nav-icon relative flex items-center justify-center w-5 h-5 shrink-0 ${denseRail ? 'md:w-3.5 md:h-3.5' : ''}`}>
                             <Icon size={denseRail ? 14 : 16} strokeWidth={1.75} />
                           </span>
                           <span className={`flex-1 truncate ${compactRail ? 'md:hidden' : ''}`}>{t(item.labelKey)}</span>
@@ -345,7 +345,7 @@ export function ActivityBar({
               onClick={() => setRailCollapsed(!railCollapsed)}
               title={t(railCollapsed ? 'nav.expandRail' : 'nav.collapseRail')}
               aria-label={t(railCollapsed ? 'nav.expandRail' : 'nav.collapseRail')}
-              className={`hidden ${denseRail ? 'h-9 w-9 md:h-[26px] md:w-[26px]' : 'h-9 w-9'} shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-overlay hover:text-text md:flex`}
+              className={`oa-icon-action hidden ${denseRail ? 'h-9 w-9 md:h-[26px] md:w-[26px]' : 'h-9 w-9'} shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-overlay hover:text-text md:flex`}
             >
               {railCollapsed
                 ? <PanelLeftOpen size={denseRail ? 14 : 17} strokeWidth={1.75} aria-hidden />
@@ -427,7 +427,7 @@ function SectionHeader({
         )}
       </div>
       {showItems && description && hintOpen && (
-        <p className="mb-2 px-3 text-[11px] leading-relaxed text-text-muted">
+        <p className="oa-disclosure-enter mb-2 px-3 text-[11px] leading-relaxed text-text-muted">
           {description}
         </p>
       )}

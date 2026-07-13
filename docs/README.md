@@ -14,6 +14,7 @@ GitHub navigation.
 | [[docs/managed-workspace-runtime.md]] | [Managed Workspace runtime](managed-workspace-runtime.md) | Electron packaging, managed Pi, PortableGit/Bash, runtime profile, Workspace PATH |
 | [[docs/docker-deployment.md]] | [Docker deployment](docker-deployment.md) | Server image topology, remote-host safety, persistence, health, and container acceptance |
 | [[docs/connector-service.md]] | [Connector Service](connector-service.md) | Optional Discord/Telegram Inbox projection, adapters, secrets, health, Guardian lifecycle |
+| [[docs/ui-interaction-and-motion.md]] | [UI interaction and motion](ui-interaction-and-motion.md) | Clickable affordances, shared motion tokens, entrances/disclosures, reduced-motion policy |
 | [[docs/workspace-agent-guidance.md]] | [Workspace agent guidance](workspace-agent-guidance.md) | Always-loaded prompt contract, skill ownership, live CLI authority, guidance versioning |
 | [[docs/workspace-lifecycle.md]] | [Workspace and Session lifecycle](workspace-lifecycle.md) | Offboarding, departed directories, handoff, restore/purge, Session retirement |
 | [[docs/workspace-issues-and-scheduling.md]] | [Workspace issues and scheduling](workspace-issues-and-scheduling.md) | Markdown issue contract, global board, schedule scanner, headless execution, Inbox delivery |

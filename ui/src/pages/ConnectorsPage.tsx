@@ -303,7 +303,7 @@ function SetupStatePanel({
   const running = setup.stage === 'starting' || setup.stage === 'awaiting_link' || setup.stage === 'linked' || setup.stage === 'error'
 
   return (
-    <div className={`rounded-xl border px-4 py-4 ${presentation.container}`}>
+    <div className={`oa-status-surface rounded-xl border px-4 py-4 ${presentation.container}`} aria-live="polite">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 gap-3">
           <Icon size={18} className={`mt-0.5 shrink-0 ${presentation.iconClass}`} />
@@ -328,7 +328,7 @@ function SetupStatePanel({
           {(setup.stage === 'ready_to_link' || setup.stage === 'linked_offline') && (
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-[12px] font-medium text-white hover:bg-accent/90 disabled:opacity-50"
+              className="oa-pressable inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-[12px] font-medium text-white hover:bg-accent/90 disabled:opacity-50"
               disabled={saving}
               onClick={onStart}
             >
@@ -339,7 +339,7 @@ function SetupStatePanel({
           {running && (
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[12px] text-text-muted hover:text-text disabled:opacity-50"
+              className="oa-pressable inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[12px] text-text-muted hover:text-text disabled:opacity-50"
               disabled={saving}
               onClick={onStop}
             >

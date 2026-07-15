@@ -25,6 +25,20 @@ export const WIRE_SHAPE_SHORT: Record<WireShape, string> = {
   'openai-responses': 'OpenAI Responses',
 }
 
+/** Plain-language labels for the custom endpoint mode picker. */
+export const WIRE_SHAPE_GUIDANCE: Record<WireShape, string> = {
+  anthropic: 'Anthropic Messages',
+  'openai-chat': 'OpenAI Chat Completions',
+  'openai-responses': 'OpenAI Responses',
+}
+
+export const AGENT_LABELS: Record<string, string> = {
+  claude: 'Claude Code',
+  codex: 'Codex',
+  opencode: 'opencode',
+  pi: 'Pi',
+}
+
 /** The regions a preset offers (each carrying its per-shape endpoint map). */
 export function presetRegions(p: Preset | null | undefined): SerializedRegion[] {
   return p?.regions ?? []
@@ -68,6 +82,18 @@ export function pickAgentWire(
   return null
 }
 
+/** Agent runtimes that can consume at least one declared wire shape. */
+export function compatibleAgentIds(wires: Partial<Record<WireShape, string>>): string[] {
+  return Object.keys(AGENT_WIRE_PREFERENCE).filter((agentId) => pickAgentWire(wires, agentId) !== null)
+}
+
+/** Compatibility summary for a preset before a region has been selected. */
+export function presetCompatibleAgentIds(preset: Preset): string[] {
+  const wires: Partial<Record<WireShape, string>> = {}
+  for (const region of presetRegions(preset)) Object.assign(wires, region.wires)
+  return compatibleAgentIds(wires)
+}
+
 function schemaProps(schema: Preset['schema']): Record<string, Record<string, unknown>> {
   return (schema?.properties as Record<string, Record<string, unknown>>) ?? {}
 }
@@ -80,6 +106,13 @@ function oneOf(schema: Preset['schema'], field: string): LabeledOption[] {
 /** Enumerated models for a preset (empty for custom / un-enumerated presets). */
 export function presetModels(p: Preset): LabeledOption[] {
   return oneOf(p.schema, 'model')
+}
+
+/** Use the catalog's actual field default instead of assuming list order. */
+export function presetDefaultModel(p: Preset | null | undefined): string {
+  if (!p) return ''
+  const value = schemaProps(p.schema)['model']?.default
+  return typeof value === 'string' ? value : presetModels(p)[0]?.id ?? ''
 }
 
 /** Only api-key presets belong in the credential vault — oauth ones log in via the CLI. */

@@ -77,6 +77,14 @@ export interface SerializedRegion {
   wires: Partial<Record<WireShape, string>>
 }
 
+export interface CredentialSetupGuide {
+  apiKeyLabel: string
+  apiKeyPlaceholder?: string
+  apiKeyHelp: string
+  modelHelp: string
+  regionHelp?: string
+}
+
 export interface Preset {
   id: string
   label: string
@@ -88,6 +96,8 @@ export interface Preset {
   /** Regions × their per-shape endpoints — the form picks a region; the
    *  credential captures that region's whole wires map (its capabilities). */
   regions?: SerializedRegion[]
+  /** Provider-aware guidance for the API-key credential form. */
+  setup?: CredentialSetupGuide
 }
 
 /** Subset of JSON Schema types we use for form rendering. */

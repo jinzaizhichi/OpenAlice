@@ -114,6 +114,7 @@ export function createConfigRoutes(opts?: ConfigRouteOpts) {
         wires: credentialWires(cred), // derives from legacy {baseUrl,wireShape} too
         apiKey: cred.apiKey ?? null,
         hasApiKey: !!cred.apiKey,
+        ...(cred.lastModel ? { lastModel: cred.lastModel } : {}),
       }))
       return c.json({ credentials: list })
     } catch (err) {

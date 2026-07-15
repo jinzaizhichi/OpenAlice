@@ -126,6 +126,24 @@ describe('POST /credentials', () => {
   })
 })
 
+describe('GET /credentials', () => {
+  it('returns the remembered model so editing does not replace it with the catalog default', async () => {
+    const routes = createConfigRoutes()
+    credStore['openai-1'] = {
+      ...credStore['openai-1']!,
+      lastModel: 'gpt-account-specific',
+    }
+
+    const { status, body } = await req(routes, 'GET', '/credentials')
+
+    expect(status).toBe(200)
+    const credentials = body!.credentials as Array<Record<string, unknown>>
+    expect(credentials.find((credential) => credential.slug === 'openai-1')).toMatchObject({
+      lastModel: 'gpt-account-specific',
+    })
+  })
+})
+
 describe('POST /credentials/test', () => {
   const mockBody = {
     wireShape: 'openai-chat',

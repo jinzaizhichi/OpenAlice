@@ -1,5 +1,64 @@
 import { http, HttpResponse } from 'msw'
 
+const demoCredentialPresets = [
+  {
+    id: 'codex-api',
+    label: 'OpenAI (API Key)',
+    description: 'Pay per token via OpenAI API',
+    category: 'official',
+    defaultName: 'OpenAI (API Key)',
+    setup: {
+      apiKeyLabel: 'OpenAI API key',
+      apiKeyPlaceholder: 'sk-...',
+      apiKeyHelp: 'Use an OpenAI Platform API key. A ChatGPT subscription is a separate Codex CLI login.',
+      modelHelp: 'Choose a model enabled for this API project.',
+    },
+    schema: {
+      type: 'object',
+      properties: {
+        apiKey: { type: 'string' },
+        model: { type: 'string', default: 'gpt-5.5', oneOf: [{ const: 'gpt-5.5', title: 'GPT 5.5' }] },
+      },
+    },
+    regions: [{ id: 'official', label: 'OpenAI (api.openai.com)', wires: { 'openai-responses': '', 'openai-chat': '' } }],
+  },
+  {
+    id: 'gemini',
+    label: 'Google Gemini',
+    description: 'Google AI via API key',
+    category: 'third-party',
+    defaultName: 'Google Gemini',
+    hint: 'OpenAlice uses Google’s official OpenAI-compatible endpoint. This credential works with Pi and opencode.',
+    setup: {
+      apiKeyLabel: 'Google AI API key',
+      apiKeyPlaceholder: 'AIza...',
+      apiKeyHelp: 'Use a Gemini API key from Google AI Studio.',
+      modelHelp: 'Choose a Gemini model exposed by Google’s compatibility endpoint.',
+    },
+    schema: {
+      type: 'object',
+      properties: {
+        apiKey: { type: 'string' },
+        model: { type: 'string', default: 'gemini-3.5-flash', oneOf: [{ const: 'gemini-3.5-flash', title: 'Gemini 3.5 Flash' }] },
+      },
+    },
+    regions: [{ id: 'default', label: 'Google', wires: { 'openai-chat': 'https://generativelanguage.googleapis.com/v1beta/openai/' } }],
+  },
+  {
+    id: 'custom',
+    label: 'Custom',
+    description: 'Full control — any compatible provider, model, and endpoint',
+    category: 'custom',
+    defaultName: '',
+    setup: {
+      apiKeyLabel: 'Endpoint API key',
+      apiKeyHelp: 'Use a key accepted by this endpoint.',
+      modelHelp: 'Enter the exact model ID exposed by the endpoint.',
+    },
+    schema: { type: 'object', properties: { apiKey: { type: 'string' }, model: { type: 'string' } } },
+  },
+]
+
 export const configKeysHandlers = [
   http.get('/api/config/api-keys/status', () => HttpResponse.json({})),
   http.put('/api/config/apiKeys', () => new HttpResponse(null, { status: 204 })),
@@ -29,15 +88,15 @@ export const configKeysHandlers = [
     }),
   ),
 
-  http.get('/api/config/presets', () => HttpResponse.json({ presets: [] })),
+  http.get('/api/config/presets', () => HttpResponse.json({ presets: demoCredentialPresets })),
 
   // Credential vault (AI Provider page) — a small representative set so the
   // page (and the per-agent default pickers) render with content in the demo.
   http.get('/api/config/credentials', () =>
     HttpResponse.json({
       credentials: [
-        { slug: 'anthropic-1', vendor: 'anthropic', label: 'Anthropic', authType: 'api-key', wires: { anthropic: '' }, apiKey: null, hasApiKey: true },
-        { slug: 'openai-1', vendor: 'openai', label: 'OpenAI', authType: 'api-key', wires: { 'openai-responses': '', 'openai-chat': '' }, apiKey: null, hasApiKey: true },
+        { slug: 'anthropic-1', vendor: 'anthropic', label: 'Anthropic', authType: 'api-key', wires: { anthropic: '' }, apiKey: null, hasApiKey: true, lastModel: 'claude-opus-4-8' },
+        { slug: 'openai-1', vendor: 'openai', label: 'OpenAI', authType: 'api-key', wires: { 'openai-responses': '', 'openai-chat': '' }, apiKey: null, hasApiKey: true, lastModel: 'gpt-5.5' },
       ],
     }),
   ),

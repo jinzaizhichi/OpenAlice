@@ -38,6 +38,20 @@ export interface RegionOption {
   wires: Partial<Record<WireShape, string>>
 }
 
+/**
+ * Provider-aware copy for the credential form. The storage shape stays
+ * vendor-neutral, but users should not have to infer whether a subscription
+ * login belongs here, whether a key is region-bound, or what the model field
+ * will be used for.
+ */
+export interface CredentialSetupGuide {
+  apiKeyLabel: string
+  apiKeyPlaceholder?: string
+  apiKeyHelp: string
+  modelHelp: string
+  regionHelp?: string
+}
+
 export interface PresetDef {
   id: string
   label: string
@@ -54,6 +68,8 @@ export interface PresetDef {
    * (free-form).
    */
   regions?: RegionOption[]
+  /** User-facing guidance for the API-key credential form. */
+  setup?: CredentialSetupGuide
   writeOnlyFields?: string[]
 }
 
@@ -95,6 +111,12 @@ export const CLAUDE_API: PresetDef = {
     { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
   ],
   regions: [{ id: 'official', label: 'Official (api.anthropic.com)', wires: { anthropic: '' } }],
+  setup: {
+    apiKeyLabel: 'Anthropic API key',
+    apiKeyPlaceholder: 'sk-ant-...',
+    apiKeyHelp: 'Use a key from Anthropic Console. Claude Pro/Max is a separate Claude Code login and does not belong in this field.',
+    modelHelp: 'Choose an Anthropic API model ID. OpenAlice tests this exact model and remembers it as the default for this credential.',
+  },
   writeOnlyFields: ['apiKey'],
 }
 
@@ -138,6 +160,12 @@ export const CODEX_API: PresetDef = {
   // current API (what codex speaks); Chat Completions is the legacy shape
   // opencode/pi use.
   regions: [{ id: 'official', label: 'OpenAI (api.openai.com)', wires: { 'openai-responses': '', 'openai-chat': '' } }],
+  setup: {
+    apiKeyLabel: 'OpenAI API key',
+    apiKeyPlaceholder: 'sk-...',
+    apiKeyHelp: 'Use an OpenAI Platform API key. A ChatGPT subscription is a separate Codex CLI login and does not belong in this field.',
+    modelHelp: 'Choose a model enabled for this API project. The saved model becomes this credential’s default in new Workspace injections.',
+  },
   writeOnlyFields: ['apiKey'],
 }
 
@@ -149,6 +177,7 @@ export const GEMINI: PresetDef = {
   description: 'Google AI via API key',
   category: 'third-party',
   defaultName: 'Google Gemini',
+  hint: 'OpenAlice uses Google’s official OpenAI-compatible endpoint for this credential. It can drive Pi and opencode; it is not a native Gemini wire for Claude Code or Codex.',
   zodSchema: z.object({
     backend: z.literal('vercel-ai-sdk'),
     provider: z.literal('google'),
@@ -163,6 +192,12 @@ export const GEMINI: PresetDef = {
   // Google's OpenAI-compatibility layer (the native google-generative-ai wire
   // isn't a supported shape yet). Reachable by opencode/pi.
   regions: [{ id: 'default', label: 'Google', wires: { 'openai-chat': 'https://generativelanguage.googleapis.com/v1beta/openai/' } }],
+  setup: {
+    apiKeyLabel: 'Google AI API key',
+    apiKeyPlaceholder: 'AIza...',
+    apiKeyHelp: 'Use a Gemini API key from Google AI Studio. OpenAlice sends it to Google’s OpenAI-compatible API endpoint.',
+    modelHelp: 'Choose a Gemini model exposed by that compatibility endpoint, or paste another exact model ID available to your key.',
+  },
   writeOnlyFields: ['apiKey'],
 }
 
@@ -199,6 +234,12 @@ export const MINIMAX: PresetDef = {
     { id: 'MiniMax-M3', label: 'MiniMax M3' },
     { id: 'MiniMax-M2.7', label: 'MiniMax M2.7' },
   ],
+  setup: {
+    apiKeyLabel: 'MiniMax API key',
+    apiKeyHelp: 'Use the API key issued by the MiniMax platform selected above. China and International keys are not interchangeable.',
+    modelHelp: 'MiniMax model IDs are case-sensitive. Pick a suggestion or paste the exact model ID shown by the selected platform.',
+    regionHelp: 'Choose the platform that issued this key. OpenAlice will store both supported API protocols for that region.',
+  },
   writeOnlyFields: ['apiKey'],
 }
 
@@ -229,6 +270,12 @@ export const GLM: PresetDef = {
   models: [
     { id: 'glm-5.2', label: 'GLM 5.2' },
   ],
+  setup: {
+    apiKeyLabel: 'GLM API key',
+    apiKeyHelp: 'Use the API key issued by the Zhipu platform selected above. China and International keys are region-bound.',
+    modelHelp: 'Use the exact GLM model ID available to this account. OpenAlice remembers it as this credential’s default.',
+    regionHelp: 'Choose the platform that issued this key; it determines the endpoints OpenAlice injects.',
+  },
   writeOnlyFields: ['apiKey'],
 }
 
@@ -265,6 +312,12 @@ export const KIMI: PresetDef = {
     { id: 'kimi-k2.7-code', label: 'Kimi K2.7 Code' },
     { id: 'kimi-k2.6', label: 'Kimi K2.6' },
   ],
+  setup: {
+    apiKeyLabel: 'Moonshot API key',
+    apiKeyHelp: 'Use the API key issued by the Moonshot platform selected above. China and International keys are region-bound.',
+    modelHelp: 'Use the exact Moonshot model ID available on the selected platform; model IDs can differ by region and rollout.',
+    regionHelp: 'Choose the platform that issued this key; OpenAlice cannot use a China key against the International endpoint or vice versa.',
+  },
   writeOnlyFields: ['apiKey'],
 }
 
@@ -292,6 +345,11 @@ export const DEEPSEEK: PresetDef = {
   models: [
     { id: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro (flagship)' },
   ],
+  setup: {
+    apiKeyLabel: 'DeepSeek API key',
+    apiKeyHelp: 'Use a key from the DeepSeek API platform. This is separate from a consumer chat account.',
+    modelHelp: 'Choose a DeepSeek API model ID or paste another exact model ID enabled for the key.',
+  },
   writeOnlyFields: ['apiKey'],
 }
 
@@ -322,6 +380,11 @@ export const LONGCAT: PresetDef = {
   models: [
     { id: 'LongCat-2.0', label: 'LongCat 2.0' },
   ],
+  setup: {
+    apiKeyLabel: 'LongCat API key',
+    apiKeyHelp: 'Use a key accepted by api.longcat.chat. OpenAlice stores both LongCat-compatible protocol endpoints with this credential.',
+    modelHelp: 'Use the exact LongCat API model ID. The saved value is tested now and reused as the credential default.',
+  },
   writeOnlyFields: ['apiKey'],
 }
 
@@ -343,6 +406,11 @@ export const CUSTOM: PresetDef = {
   }),
   // No `regions` — Custom is free-form: the form lets the user pick any wire
   // shape and type the endpoint URL by hand.
+  setup: {
+    apiKeyLabel: 'Endpoint API key',
+    apiKeyHelp: 'Use a key accepted by this endpoint. Subscription logins and keyless local servers are configured in the agent CLI instead of this managed credential path.',
+    modelHelp: 'Enter the exact, case-sensitive model ID exposed by the endpoint. OpenAlice cannot discover custom model names automatically.',
+  },
   writeOnlyFields: ['apiKey'],
 }
 
@@ -374,7 +442,7 @@ export const PRESET_CATALOG: PresetDef[] = [
 export const DEFAULT_MODEL_BY_VENDOR: Record<string, string> = {
   anthropic: 'claude-opus-4-8',
   openai: 'gpt-5.5',
-  google: 'gemini-2.5-pro',
+  google: 'gemini-3.5-flash',
   minimax: 'MiniMax-M3',
   glm: 'glm-5.2',
   kimi: 'kimi-k2.7-code',

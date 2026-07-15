@@ -7,7 +7,8 @@
  * adapter instead consumes a `WorkspaceAiCred` (`cli-adapter.ts`) and renders it
  * into its own file format. A credential carries no model — model is always a
  * per-use choice — so the caller supplies it (plus the adapter-specific
- * `authMode` / `wireApi` knobs) via `overrides`.
+ * `authMode` / `wireApi` knobs) via `overrides`. The vault's `lastModel` is a
+ * remembered default, not a lock; callers may still supply a per-use model.
  *
  * This is the one place that maps Credential → WorkspaceAiCred, used by
  * template-driven injection at workspace-create time and reusable by any future
@@ -76,9 +77,9 @@ export function matchCredentialByApiKey(
 
 /**
  * The model to inject for a credential: its remembered `lastModel`, else the
- * vendor's catalog flagship, else null (custom creds with no history — let the
- * runtime decide). A credential never carries its own model, so this is the
- * single resolution point shared by quick-chat injection.
+ * vendor's catalog default, else null (custom creds with no history — let the
+ * runtime decide). This is the single resolution point shared by quick-chat
+ * injection; a Workspace may still override it for one use.
  */
 export function resolveInjectionModel(cred: Pick<Credential, 'vendor' | 'lastModel'>): string | null {
   return cred.lastModel ?? DEFAULT_MODEL_BY_VENDOR[cred.vendor] ?? null

@@ -33,6 +33,32 @@ and injects `OPENALICE_MANAGED_PI_*` when it starts a source-backed Runtime. It
 still relies on host Node/npm and does not inherit Electron's managed
 Git/Bash/search-tool payload.
 
+### AI credential setup contract
+
+**Settings → AI Provider** is an account-to-runtime setup flow, not a generic
+bag of provider fields. The form must make these decisions explicit before a
+key can be saved:
+
+1. which provider account issued the API key (subscription logins remain in the
+   native Claude Code or Codex CLI);
+2. which region or endpoint owns that key;
+3. which Workspace Agent runtimes can consume the endpoint's declared API
+   protocol;
+4. which exact model ID to test and remember as the credential default; and
+5. whether that exact key + endpoint + protocol + model combination passes a
+   live connection probe.
+
+Provider presets own provider-specific key, region, and model guidance. Runtime
+compatibility is derived from the preset's wire map rather than duplicated as
+editorial copy. Protocol names and raw endpoints belong behind an advanced
+detail unless the user chose **Custom**, where protocol and base URL are
+required inputs. The managed credential path is key-bearing; keyless local
+servers and subscription auth stay in the native CLI's own configuration.
+
+Editing must round-trip the stored `lastModel` and any endpoint that no longer
+matches a current preset. A catalog refresh must never silently replace either
+value merely because the user opened and saved the form.
+
 ### Desktop data-location selection
 
 The desktop resolves the complete `OPENALICE_HOME` before acquiring runtime

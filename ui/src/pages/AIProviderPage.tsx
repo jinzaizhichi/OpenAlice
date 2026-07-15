@@ -15,15 +15,13 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
-import { api, type Preset, type WireShape } from '../api'
+import { api, type Preset } from '../api'
 import type { CredentialSummary, WorkspaceCredentialDefaultsResponse } from '../api/config'
 import { PageHeader } from '../components/PageHeader'
 import { PageLoading, Skeleton } from '../components/StateViews'
 import { inputClass } from '../components/form'
 import { CredentialModal } from '../components/credentials/CredentialModal'
-import { WIRE_SHAPE_SHORT, isApiKeyPreset } from '../lib/presetHelpers'
-
-const SHAPE_ORDER: WireShape[] = ['anthropic', 'openai-chat', 'openai-responses']
+import { AGENT_LABELS, compatibleAgentIds, isApiKeyPreset } from '../lib/presetHelpers'
 
 function credentialLabel(cred: Pick<CredentialSummary, 'slug' | 'vendor' | 'label'>): string {
   return cred.label?.trim() || cred.slug
@@ -109,7 +107,7 @@ export function AIProviderPage() {
   if (!credentials) {
     return (
       <div className="flex flex-col flex-1 min-h-0">
-        <PageHeader title="AI Provider" description="Credentials Alice holds and injects into workspaces." />
+        <PageHeader title="AI Provider" description="Provider accounts and model defaults Alice can inject into workspaces." />
         <PageLoading />
       </div>
     )
@@ -117,7 +115,7 @@ export function AIProviderPage() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <PageHeader title="AI Provider" description="Credentials Alice holds and injects into workspaces." />
+      <PageHeader title="AI Provider" description="Provider accounts and model defaults Alice can inject into workspaces." />
       <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
         <div className="max-w-[1100px] mx-auto grid gap-6 lg:grid-cols-2">
           {/* ============== Credentials ============== */}
@@ -143,40 +141,45 @@ export function AIProviderPage() {
             </div>
 
             <div className="space-y-2.5">
-              {credentials.map((cred) => (
-                <div key={cred.slug} className="flex items-center gap-3 rounded-lg border border-border bg-bg px-4 py-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[13px] font-medium text-text">{credentialLabel(cred)}</span>
-                      {cred.label && (
-                        <span className="text-[11px] text-text-muted">{cred.vendor}</span>
-                      )}
-                      <span className="text-[11px] text-text-muted font-mono">{cred.slug}</span>
-                      {(SHAPE_ORDER.filter((s) => s in cred.wires)).map((s) => (
-                        <span key={s} className="text-[10px] text-text-muted border border-border rounded px-1">{WIRE_SHAPE_SHORT[s]}</span>
-                      ))}
-                      {cred.hasApiKey && (
-                        <span className="text-[10px] text-green border border-green/40 rounded px-1">key set</span>
-                      )}
+              {credentials.map((cred) => {
+                const compatibleAgents = compatibleAgentIds(cred.wires)
+                return (
+                  <div key={cred.slug} className="flex items-center gap-3 rounded-lg border border-border bg-bg px-4 py-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] font-medium text-text">{credentialLabel(cred)}</span>
+                        {cred.label && (
+                          <span className="text-[11px] text-text-muted">{cred.vendor}</span>
+                        )}
+                        <span className="text-[11px] text-text-muted font-mono">{cred.slug}</span>
+                        {compatibleAgents.map((agentId) => (
+                          <span key={agentId} className="text-[10px] text-text-muted border border-border rounded px-1">{AGENT_LABELS[agentId] ?? agentId}</span>
+                        ))}
+                        {cred.hasApiKey && (
+                          <span className="text-[10px] text-green border border-green/40 rounded px-1">key set</span>
+                        )}
+                      </div>
+                      <div className="mt-0.5 truncate text-[11px] text-text-muted">
+                        Default model: <span className="font-mono">{cred.lastModel || 'not set'}</span>
+                        <span className="px-1.5 text-text-muted/50">·</span>
+                        <span className="font-mono">{Object.values(cred.wires)[0] || 'provider official endpoint'}</span>
+                      </div>
                     </div>
-                    <div className="text-[11px] text-text-muted mt-0.5 font-mono truncate">
-                      {Object.values(cred.wires)[0] || 'default endpoint'}
-                    </div>
+                    <button
+                      onClick={() => setModal({ mode: 'edit', cred })}
+                      className="text-[11px] px-2 py-1 rounded-md border border-border text-text-muted hover:text-text transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(cred.slug)}
+                      className="text-[11px] px-2 py-1 rounded-md border border-border text-text-muted hover:text-red transition-colors"
+                    >
+                      Delete
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setModal({ mode: 'edit', cred })}
-                    className="text-[11px] px-2 py-1 rounded-md border border-border text-text-muted hover:text-text transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(cred.slug)}
-                    className="text-[11px] px-2 py-1 rounded-md border border-border text-text-muted hover:text-red transition-colors"
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))}
+                )
+              })}
 
               {credentials.length === 0 && (
                 <button
@@ -197,7 +200,8 @@ export function AIProviderPage() {
                 one a workspace (or cron job) runs. Pick by the models/provider you want; every
                 runtime reaches the full OpenAlice tool surface either way (native MCP where
                 supported, the <code className="font-mono text-[11.5px]">alice</code> CLI on PATH
-                otherwise). The model is chosen per workspace, not here.
+                otherwise). Each credential remembers a tested default model; a workspace can
+                override that model when needed.
               </p>
             </div>
 

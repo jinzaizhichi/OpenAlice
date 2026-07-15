@@ -115,10 +115,15 @@ export type CredentialAuthType = z.infer<typeof credentialAuthTypeEnum>
  * derivable from baseUrl alone — OpenAI Chat Completions and Responses share
  * one base URL (api.openai.com/v1), so only this field distinguishes them. Also
  * tells injection how to configure the consuming adapter. Mirrors the
- * `WireShape` union in ai-providers/preset-catalog.ts (kept in sync by hand —
- * 3 stable values; core must not depend on the ai-providers layer).
+ * `WireShape` union in ai-providers/preset-catalog.ts (kept in sync by hand;
+ * core must not depend on the ai-providers layer).
  */
-export const credentialWireShapeEnum = z.enum(['anthropic', 'openai-chat', 'openai-responses'])
+export const credentialWireShapeEnum = z.enum([
+  'anthropic',
+  'google-generative-ai',
+  'openai-chat',
+  'openai-responses',
+])
 export type CredentialWireShape = z.infer<typeof credentialWireShapeEnum>
 
 export const credentialSchema = z.object({
@@ -177,8 +182,19 @@ export function credentialWires(cred: Credential): Partial<Record<CredentialWire
 export const workspaceCredentialDefaultSchema = z.object({
   credentialSlug: z.string(),
   model: z.string().optional(),
+  /** Optional explicit protocol when a credential exposes more than one wire. */
+  wireShape: credentialWireShapeEnum.optional(),
 })
 export type WorkspaceCredentialDefault = z.infer<typeof workspaceCredentialDefaultSchema>
+
+export const DEFAULT_WORKSPACE_CONTEXT_WINDOW = 256_000
+export const workspaceContextWindowSchema = z.union([
+  z.literal(128_000),
+  z.literal(256_000),
+  z.literal(512_000),
+  z.literal(1_000_000),
+])
+export type WorkspaceContextWindow = z.infer<typeof workspaceContextWindowSchema>
 
 export const aiProviderSchema = z.object({
   apiKeys: apiKeysSchema.default({}),
@@ -198,6 +214,12 @@ export const aiProviderSchema = z.object({
    * `credentials`; a dangling slug is loud-skipped at injection, never fatal.
    */
   workspaceCredentialDefaults: z.record(z.string(), workspaceCredentialDefaultSchema).default({}),
+  /**
+   * Context limit written into newly injected opencode/Pi custom models. Keep
+   * the default below the common 256K price-tier boundary; users can opt into
+   * a larger window explicitly without changing existing workspaces.
+   */
+  workspaceDefaultContextWindow: workspaceContextWindowSchema.default(DEFAULT_WORKSPACE_CONTEXT_WINDOW),
   /**
    * User-level default runtime for new interactive workspace sessions. This is
    * intentionally separate from workspace identity (`agents[]`) and from
@@ -895,10 +917,18 @@ export async function addCredential(credential: Credential): Promise<string> {
     c.apiKey === validated.apiKey,
   )
   if (match) {
-    // Upgrade the existing record's wires/endpoint in place (don't duplicate).
+    // Upgrade the existing record's wire capabilities in place (don't
+    // duplicate). A per-Workspace "save to Alice" contributes one shape at a
+    // time, so merge rather than replace or a later save would silently erase
+    // the other protocol selected by Workspace defaults.
     const existing = match[1]
+    const mergedWires = {
+      ...credentialWires(existing),
+      ...credentialWires(validated),
+    }
     config.credentials[match[0]] = {
       ...validated,
+      ...(Object.keys(mergedWires).length ? { wires: mergedWires } : {}),
       ...(validated.label ?? existing.label ? { label: validated.label ?? existing.label } : {}),
       ...(validated.lastModel ?? existing.lastModel ? { lastModel: validated.lastModel ?? existing.lastModel } : {}),
     }
@@ -968,6 +998,37 @@ export async function writeWorkspaceCredentialDefaults(
     if (parsed.credentialSlug) cleaned[agentId] = parsed
   }
   config.workspaceCredentialDefaults = cleaned
+  await mkdir(CONFIG_DIR, { recursive: true })
+  await writeFile(resolve(CONFIG_DIR, 'ai-provider-manager.json'), JSON.stringify(config, null, 2) + '\n')
+}
+
+export async function readWorkspaceDefaultContextWindow(): Promise<WorkspaceContextWindow> {
+  const config = await readAIProviderConfig()
+  return config.workspaceDefaultContextWindow
+}
+
+export async function writeWorkspaceDefaultContextWindow(
+  contextWindow: WorkspaceContextWindow,
+): Promise<void> {
+  const config = await readAIProviderConfig()
+  config.workspaceDefaultContextWindow = workspaceContextWindowSchema.parse(contextWindow)
+  await mkdir(CONFIG_DIR, { recursive: true })
+  await writeFile(resolve(CONFIG_DIR, 'ai-provider-manager.json'), JSON.stringify(config, null, 2) + '\n')
+}
+
+/** Atomically replace the two defaults that seed newly created Workspaces. */
+export async function writeWorkspaceCreationDefaults(
+  defaults: Record<string, WorkspaceCredentialDefault>,
+  contextWindow: WorkspaceContextWindow,
+): Promise<void> {
+  const config = await readAIProviderConfig()
+  const cleaned: Record<string, WorkspaceCredentialDefault> = {}
+  for (const [agentId, def] of Object.entries(defaults)) {
+    const parsed = workspaceCredentialDefaultSchema.parse(def)
+    if (parsed.credentialSlug) cleaned[agentId] = parsed
+  }
+  config.workspaceCredentialDefaults = cleaned
+  config.workspaceDefaultContextWindow = workspaceContextWindowSchema.parse(contextWindow)
   await mkdir(CONFIG_DIR, { recursive: true })
   await writeFile(resolve(CONFIG_DIR, 'ai-provider-manager.json'), JSON.stringify(config, null, 2) + '\n')
 }

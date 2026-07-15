@@ -68,7 +68,7 @@ export interface SdkAdapterInfo {
 
 // ==================== AI Provider Presets ====================
 
-export type WireShape = 'anthropic' | 'openai-chat' | 'openai-responses'
+export type WireShape = 'anthropic' | 'google-generative-ai' | 'openai-chat' | 'openai-responses'
 
 /** A region + the per-wire-shape endpoints it offers. */
 export interface SerializedRegion {

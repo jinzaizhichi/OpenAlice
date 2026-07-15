@@ -82,8 +82,8 @@ export interface WorkspaceAiCred {
   apiKey?: string | null;
   model?: string | null;
   /**
-   * The wire protocol the endpoint speaks — anthropic Messages / OpenAI Chat
-   * Completions / OpenAI Responses. The cross-CLI generalization of the
+   * The wire protocol the endpoint speaks — Anthropic Messages / Google
+   * Generative AI / OpenAI Chat Completions / OpenAI Responses. The cross-CLI generalization of the
    * codex-only `wireApi`: each adapter renders it into its native config
    * (opencode → which @ai-sdk package, pi → `api` field, codex → `wire_api`).
    * Carried on the central credential and threaded through here so a runtime
@@ -98,7 +98,7 @@ export interface WorkspaceAiCred {
   contextWindow?: number | null;
   /** Codex only — legacy/explicit wire_api; superseded by wireShape when set. */
   wireApi?: 'chat' | 'responses' | null;
-  /** Claude only. */
+  /** Header mode for an Anthropic wire, regardless of the consuming runtime. */
   authMode?: 'x-api-key' | 'bearer';
 }
 

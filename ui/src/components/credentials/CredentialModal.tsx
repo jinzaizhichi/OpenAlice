@@ -19,7 +19,7 @@ import {
 import { useTestGate } from '../../lib/useTestGate'
 import { ModelCombobox } from './PresetFields'
 
-const SHAPE_ORDER: WireShape[] = ['anthropic', 'openai-chat', 'openai-responses']
+const SHAPE_ORDER: WireShape[] = ['anthropic', 'google-generative-ai', 'openai-chat', 'openai-responses']
 const STORED_REGION_ID = '__stored__'
 
 /** Find the region whose wires match a stored credential (for edit mode). */

@@ -264,11 +264,34 @@ describe('opencodeAdapter AI-config', () => {
     });
   });
 
-  it('honors wireShape — anthropic → @ai-sdk/anthropic, responses → @ai-sdk/openai', async () => {
+  it('honors wireShape — Anthropic, Google, and OpenAI Responses use their native SDKs', async () => {
     await opencodeAdapter.writeAiConfig!(dir, { baseUrl: 'https://x/anthropic', apiKey: 'k', model: 'glm-5.1', wireShape: 'anthropic' });
     expect(JSON.parse(await read('opencode.json')).provider.workspace.npm).toBe('@ai-sdk/anthropic');
+    await opencodeAdapter.writeAiConfig!(dir, { baseUrl: 'https://x/google', apiKey: 'AQ.k', model: 'gemini', wireShape: 'google-generative-ai' });
+    expect(JSON.parse(await read('opencode.json')).provider.workspace.npm).toBe('@ai-sdk/google');
+    expect((await opencodeAdapter.readAiConfig!(dir))?.wireShape).toBe('google-generative-ai');
     await opencodeAdapter.writeAiConfig!(dir, { baseUrl: 'https://x/v1', apiKey: 'k', model: 'gpt-5.5', wireShape: 'openai-responses' });
     expect(JSON.parse(await read('opencode.json')).provider.workspace.npm).toBe('@ai-sdk/openai');
+  });
+
+  it('writes Anthropic bearer auth without a conflicting x-api-key and round-trips it', async () => {
+    await opencodeAdapter.writeAiConfig!(dir, {
+      baseUrl: 'https://api.minimax.io/anthropic',
+      apiKey: 'mm-key',
+      model: 'MiniMax-M3',
+      wireShape: 'anthropic',
+      authMode: 'bearer',
+    });
+    const options = JSON.parse(await read('opencode.json')).provider.workspace.options;
+    expect(options).toEqual({
+      baseURL: 'https://api.minimax.io/anthropic',
+      headers: { Authorization: 'Bearer mm-key' },
+    });
+    expect(await opencodeAdapter.readAiConfig!(dir)).toMatchObject({
+      apiKey: 'mm-key',
+      wireShape: 'anthropic',
+      authMode: 'bearer',
+    });
   });
 
   it('reset (empty cred) deletes opencode.json', async () => {
@@ -607,11 +630,32 @@ describe('piAdapter AI-config', () => {
     ]);
   });
 
-  it('honors wireShape — anthropic → anthropic-messages, responses → openai-responses', async () => {
+  it('honors wireShape — Anthropic, Google, and OpenAI Responses use native Pi APIs', async () => {
     await piAdapter.writeAiConfig!(dir, { baseUrl: 'https://x/anthropic', apiKey: 'k', model: 'glm-5.1', wireShape: 'anthropic' });
     expect(JSON.parse(await read('.pi-agent/models.json')).providers.workspace.api).toBe('anthropic-messages');
+    await piAdapter.writeAiConfig!(dir, { baseUrl: 'https://x/google', apiKey: 'AQ.k', model: 'gemini', wireShape: 'google-generative-ai' });
+    expect(JSON.parse(await read('.pi-agent/models.json')).providers.workspace.api).toBe('google-generative-ai');
+    expect((await piAdapter.readAiConfig!(dir))?.wireShape).toBe('google-generative-ai');
     await piAdapter.writeAiConfig!(dir, { baseUrl: 'https://x/v1', apiKey: 'k', model: 'gpt-5.5', wireShape: 'openai-responses' });
     expect(JSON.parse(await read('.pi-agent/models.json')).providers.workspace.api).toBe('openai-responses');
+  });
+
+  it('writes Anthropic bearer auth without a conflicting apiKey and round-trips it', async () => {
+    await piAdapter.writeAiConfig!(dir, {
+      baseUrl: 'https://api.minimaxi.com/anthropic',
+      apiKey: 'mm-key',
+      model: 'MiniMax-M3',
+      wireShape: 'anthropic',
+      authMode: 'bearer',
+    });
+    const provider = JSON.parse(await read('.pi-agent/models.json')).providers.workspace;
+    expect(provider.apiKey).toBeUndefined();
+    expect(provider.headers).toEqual({ Authorization: 'Bearer mm-key' });
+    expect(await piAdapter.readAiConfig!(dir)).toMatchObject({
+      apiKey: 'mm-key',
+      wireShape: 'anthropic',
+      authMode: 'bearer',
+    });
   });
 
   it('reset (empty cred) tears down the entire .pi-agent/ directory', async () => {

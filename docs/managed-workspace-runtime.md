@@ -55,9 +55,40 @@ detail unless the user chose **Custom**, where protocol and base URL are
 required inputs. The managed credential path is key-bearing; keyless local
 servers and subscription auth stay in the native CLI's own configuration.
 
+Google Gemini credentials use the native `google-generative-ai` wire in Pi and
+the native Google provider in opencode. Google AI Studio now creates `AQ.`
+authorization keys by default; these and legacy `AIza` keys are sent as
+`x-goog-api-key`. Do not route the built-in Gemini preset through Google's
+OpenAI-compatibility endpoint, whose Bearer authentication does not reliably
+accept authorization keys. The credential probe must use the same native wire
+as the Workspace runtime and fail with an actionable timeout instead of leaving
+the form indefinitely in Testing state.
+
+A stored credential may declare more than one wire for the same key. Pi and
+opencode can consume native Google, Anthropic Messages, OpenAI Chat
+Completions, or OpenAI Responses; the per-Workspace editor must therefore let
+the user choose the protocol explicitly and write the matching Pi `api` or
+opencode `@ai-sdk/*` provider. Anthropic-wire credentials also carry their
+header mode through those adapters: first-party Anthropic uses `x-api-key`,
+while confirmed gateway endpoints can use `Authorization: Bearer` without also
+emitting a conflicting API-key header. Old Workspace defaults without an
+explicit protocol keep the runtime preference order for backward compatibility.
+
+**Settings → AI Provider → Default Workspace credentials** owns creation-time
+defaults only: per-agent credential, optional protocol, and the opencode/Pi
+context limit. The context default is 256K so users do not cross common
+higher-price tiers implicitly. Changing these settings never rewrites an
+existing Workspace; that Workspace's settings modal remains the explicit
+override surface.
+
 Editing must round-trip the stored `lastModel` and any endpoint that no longer
 matches a current preset. A catalog refresh must never silently replace either
 value merely because the user opened and saved the form.
+
+Credential actions and the default-credential selectors must remain reachable
+without horizontal scrolling at the mobile shell breakpoint. In particular,
+long slugs, endpoint text, and runtime badges may wrap or truncate, but must not
+force Add, Edit, Delete, or selection controls outside the viewport.
 
 ### Desktop data-location selection
 

@@ -10,7 +10,13 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 import { createWorkspaceRoutes } from './workspaces.js';
-import { readCredentials, readWorkspaceDefaultAgent, setCredentialLastModel, type Credential } from '../../core/config.js';
+import {
+  readCredentials,
+  readWorkspaceDefaultAgent,
+  readWorkspaceDefaultContextWindow,
+  setCredentialLastModel,
+  type Credential,
+} from '../../core/config.js';
 import type { WorkspaceService } from '../../workspaces/service.js';
 import type { WorkspaceAiCred } from '../../workspaces/cli-adapter.js';
 import { ChatWorkspaceResolver } from '../../workspaces/chat-workspace-resolver.js';
@@ -23,6 +29,7 @@ vi.mock('../../core/config.js', async (importActual) => {
     ...actual,
     readCredentials: vi.fn(),
     readWorkspaceDefaultAgent: vi.fn(async () => null),
+    readWorkspaceDefaultContextWindow: vi.fn(async () => 256_000),
     setCredentialLastModel: vi.fn(async () => {}),
   };
 });
@@ -160,6 +167,7 @@ async function spawnSession(app: any, body: unknown) {
 beforeEach(() => {
   vi.mocked(readCredentials).mockReset();
   vi.mocked(readWorkspaceDefaultAgent).mockResolvedValue(null);
+  vi.mocked(readWorkspaceDefaultContextWindow).mockResolvedValue(256_000);
   vi.mocked(setCredentialLastModel).mockClear();
 });
 
@@ -185,7 +193,7 @@ describe('POST /quick-chat — loginless credential injection', () => {
     expect(cred.apiKey).toBe('sk-oa');
     expect(cred.wireShape).toBe('openai-chat');
     expect(cred.model).toBe('gpt-5.5'); // vendor flagship — no lastModel yet
-    expect(cred.contextWindow).toBe(1_000_000);
+    expect(cred.contextWindow).toBe(256_000);
     // model remembered on the cred for next time
     expect(vi.mocked(setCredentialLastModel)).toHaveBeenCalledWith('openai-1', 'gpt-5.5');
     expect(spawn).toHaveBeenCalledOnce();

@@ -3,6 +3,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 import type { Logger } from './logger.js';
+import type { CredentialWireShape } from '@/core/config.js';
 
 /**
  * A template's declaration that an enabled agent should be seeded, at
@@ -14,6 +15,10 @@ import type { Logger } from './logger.js';
 export interface AgentCredentialDecl {
   readonly credentialSlug: string;
   readonly model?: string;
+  /** Explicit protocol for credentials that expose multiple compatible wires. */
+  readonly wireShape?: CredentialWireShape;
+  /** Explicit custom-model context limit for opencode/Pi. */
+  readonly contextWindow?: number;
   /** Claude only. */
   readonly authMode?: 'x-api-key' | 'bearer';
   /** Codex only. */
@@ -336,6 +341,17 @@ function parseAgentCredentials(raw: unknown): Record<string, AgentCredentialDecl
     if (typeof v['credentialSlug'] !== 'string' || v['credentialSlug'].length === 0) continue;
     const decl: AgentCredentialDecl = { credentialSlug: v['credentialSlug'] };
     if (typeof v['model'] === 'string') (decl as { model?: string }).model = v['model'];
+    if (
+      v['wireShape'] === 'anthropic' ||
+      v['wireShape'] === 'google-generative-ai' ||
+      v['wireShape'] === 'openai-chat' ||
+      v['wireShape'] === 'openai-responses'
+    ) {
+      (decl as { wireShape?: CredentialWireShape }).wireShape = v['wireShape'];
+    }
+    if (typeof v['contextWindow'] === 'number' && Number.isFinite(v['contextWindow']) && v['contextWindow'] > 0) {
+      (decl as { contextWindow?: number }).contextWindow = v['contextWindow'];
+    }
     if (v['authMode'] === 'x-api-key' || v['authMode'] === 'bearer') {
       (decl as { authMode?: 'x-api-key' | 'bearer' }).authMode = v['authMode'];
     }

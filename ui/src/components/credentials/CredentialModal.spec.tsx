@@ -71,12 +71,12 @@ const geminiPreset: Preset = {
   description: 'Google AI via API key',
   category: 'third-party',
   defaultName: 'Google Gemini',
-  hint: 'OpenAlice uses Google’s official OpenAI-compatible endpoint.',
+  hint: 'OpenAlice uses Google’s native Gemini API.',
   setup: {
     apiKeyLabel: 'Google AI API key',
-    apiKeyPlaceholder: 'AIza...',
-    apiKeyHelp: 'Use a Gemini API key from Google AI Studio.',
-    modelHelp: 'Choose a Gemini model exposed by the compatibility endpoint.',
+    apiKeyPlaceholder: 'AQ... or AIza...',
+    apiKeyHelp: 'Use a Gemini API key from Google AI Studio. AQ and AIza keys are supported.',
+    modelHelp: 'Choose a Gemini model exposed by the native endpoint.',
   },
   schema: {
     type: 'object',
@@ -96,7 +96,7 @@ const geminiPreset: Preset = {
     {
       id: 'google',
       label: 'Google',
-      wires: { 'openai-chat': 'https://generativelanguage.googleapis.com/v1beta/openai/' },
+      wires: { 'google-generative-ai': 'https://generativelanguage.googleapis.com/v1beta' },
     },
   ],
 }
@@ -154,13 +154,13 @@ describe('CredentialModal', () => {
       />,
     )
 
-    expect(screen.getByText('Use a Gemini API key from Google AI Studio.')).toBeTruthy()
-    expect(screen.getByText('Choose a Gemini model exposed by the compatibility endpoint.')).toBeTruthy()
+    expect(screen.getByText('Use a Gemini API key from Google AI Studio. AQ and AIza keys are supported.')).toBeTruthy()
+    expect(screen.getByText('Choose a Gemini model exposed by the native endpoint.')).toBeTruthy()
     expect(screen.getByText('Pi')).toBeTruthy()
     expect(screen.getByText('opencode')).toBeTruthy()
     expect(screen.queryByText('Claude Code')).toBeNull()
     expect(screen.queryByText('Codex')).toBeNull()
-    expect(screen.getByPlaceholderText('AIza...')).toBeTruthy()
+    expect(screen.getByPlaceholderText('AQ... or AIza...')).toBeTruthy()
     expect(screen.getByDisplayValue('gemini-default')).toBeTruthy()
   })
 

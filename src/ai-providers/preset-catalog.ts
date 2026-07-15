@@ -23,7 +23,7 @@ export interface ModelOption {
  * each at a different endpoint URL. A credential captures every shape its region
  * offers (see `RegionOption.wires`) as its "wire capabilities".
  */
-export type WireShape = 'anthropic' | 'openai-chat' | 'openai-responses'
+export type WireShape = 'anthropic' | 'google-generative-ai' | 'openai-chat' | 'openai-responses'
 
 /**
  * A region (or "the official endpoint") a provider's key can authenticate
@@ -177,11 +177,11 @@ export const GEMINI: PresetDef = {
   description: 'Google AI via API key',
   category: 'third-party',
   defaultName: 'Google Gemini',
-  hint: 'OpenAlice uses Google’s official OpenAI-compatible endpoint for this credential. It can drive Pi and opencode; it is not a native Gemini wire for Claude Code or Codex.',
+  hint: 'OpenAlice uses Google’s native Gemini API so both legacy AIza keys and current AQ authorization keys work. This credential can drive Pi and opencode, not Claude Code or Codex.',
   zodSchema: z.object({
     backend: z.literal('vercel-ai-sdk'),
     provider: z.literal('google'),
-    model: z.string().default('gemini-3.5-flash').describe('Model'),
+    model: z.string().default('gemini-3.1-flash-lite').describe('Model'),
     apiKey: z.string().min(1).describe('Google AI API key'),
   }),
   models: [
@@ -189,14 +189,15 @@ export const GEMINI: PresetDef = {
     { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' },
     { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
   ],
-  // Google's OpenAI-compatibility layer (the native google-generative-ai wire
-  // isn't a supported shape yet). Reachable by opencode/pi.
-  regions: [{ id: 'default', label: 'Google', wires: { 'openai-chat': 'https://generativelanguage.googleapis.com/v1beta/openai/' } }],
+  // Google is moving newly-created keys from legacy AIza traffic keys to AQ
+  // authorization keys. The native wire sends x-goog-api-key and works for
+  // both formats; the OpenAI-compatibility layer's Bearer auth does not.
+  regions: [{ id: 'default', label: 'Google', wires: { 'google-generative-ai': 'https://generativelanguage.googleapis.com/v1beta' } }],
   setup: {
     apiKeyLabel: 'Google AI API key',
-    apiKeyPlaceholder: 'AIza...',
-    apiKeyHelp: 'Use a Gemini API key from Google AI Studio. OpenAlice sends it to Google’s OpenAI-compatible API endpoint.',
-    modelHelp: 'Choose a Gemini model exposed by that compatibility endpoint, or paste another exact model ID available to your key.',
+    apiKeyPlaceholder: 'AQ... or AIza...',
+    apiKeyHelp: 'Use a Gemini API key from Google AI Studio. Current AQ authorization keys and legacy AIza keys are both supported.',
+    modelHelp: 'Choose a Gemini model available to this key, or paste another exact model ID. Flash-Lite is the reliable free-tier default; Gemini 3.5 Flash can return temporary high-demand errors.',
   },
   writeOnlyFields: ['apiKey'],
 }
@@ -442,7 +443,7 @@ export const PRESET_CATALOG: PresetDef[] = [
 export const DEFAULT_MODEL_BY_VENDOR: Record<string, string> = {
   anthropic: 'claude-opus-4-8',
   openai: 'gpt-5.5',
-  google: 'gemini-3.5-flash',
+  google: 'gemini-3.1-flash-lite',
   minimax: 'MiniMax-M3',
   glm: 'glm-5.2',
   kimi: 'kimi-k2.7-code',

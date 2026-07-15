@@ -1156,11 +1156,7 @@ export interface AgentConfig {
   readonly wireShape?: WireShape | null;
   /** Codex only — wire format for the upstream API. */
   readonly wireApi?: 'chat' | 'responses' | null;
-  /**
-   * Claude only — `x-api-key` (Anthropic first-party default) vs `bearer`
-   * (`Authorization: Bearer`, for anthropic-compatible gateways like MiniMax
-   * international). Mirrors ANTHROPIC_API_KEY vs ANTHROPIC_AUTH_TOKEN.
-   */
+  /** Header mode whenever wireShape is Anthropic Messages. */
   readonly authMode?: 'x-api-key' | 'bearer';
 }
 

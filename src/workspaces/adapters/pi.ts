@@ -433,9 +433,10 @@ export const piAdapter: CliAdapter = {
       return;
     }
 
-    // Pi's `api` field is the wire shape: anthropic-messages / openai-responses /
-    // openai-completions (Chat Completions, the default for CN/local gateways).
+    // Pi's `api` field is the wire shape: anthropic-messages /
+    // google-generative-ai / openai-responses / openai-completions.
     const api = cred.wireShape === 'anthropic' ? 'anthropic-messages'
+      : cred.wireShape === 'google-generative-ai' ? 'google-generative-ai'
       : cred.wireShape === 'openai-responses' ? 'openai-responses'
       : 'openai-completions';
     const provider: Record<string, unknown> = {
@@ -445,7 +446,15 @@ export const piAdapter: CliAdapter = {
     if (cred.baseUrl) provider['baseUrl'] = cred.baseUrl;
     // Key written directly into the workspace file (same trust model as codex's
     // .codex/env.json / opencode's opencode.json).
-    if (cred.apiKey) provider['apiKey'] = cred.apiKey;
+    if (cred.apiKey) {
+      if (cred.wireShape === 'anthropic' && cred.authMode === 'bearer') {
+        // Pi supports literal provider headers. Store only Authorization so its
+        // Anthropic transport does not also synthesize x-api-key from apiKey.
+        provider['headers'] = { Authorization: `Bearer ${cred.apiKey}` };
+      } else {
+        provider['apiKey'] = cred.apiKey;
+      }
+    }
     // Pi's custom model registry otherwise falls back to 128k. OpenAlice writes
     // the context window when known so long-context models do not compact early.
     if (cred.model) {
@@ -489,7 +498,14 @@ export const piAdapter: CliAdapter = {
     const providers = (parsed['providers'] ?? {}) as Record<string, unknown>;
     const p = (providers[PI_PROVIDER_NAME] ?? {}) as Record<string, unknown>;
     const baseUrl = typeof p['baseUrl'] === 'string' ? (p['baseUrl'] as string) : null;
-    const apiKey = typeof p['apiKey'] === 'string' ? (p['apiKey'] as string) : null;
+    const headers = (p['headers'] ?? {}) as Record<string, unknown>;
+    const authorization = typeof headers['Authorization'] === 'string'
+      ? headers['Authorization']
+      : typeof headers['authorization'] === 'string'
+        ? headers['authorization']
+        : null;
+    const bearerKey = authorization?.match(/^Bearer\s+(.+)$/i)?.[1] ?? null;
+    const apiKey = typeof p['apiKey'] === 'string' ? (p['apiKey'] as string) : bearerKey;
     const models = Array.isArray(p['models']) ? (p['models'] as Array<Record<string, unknown>>) : [];
     const first = models[0];
     const model = first && typeof first['id'] === 'string' ? (first['id'] as string) : null;
@@ -498,8 +514,16 @@ export const piAdapter: CliAdapter = {
     // Reverse the `api` field back to the wire shape.
     const api = p['api'];
     const wireShape = api === 'anthropic-messages' ? 'anthropic' as const
+      : api === 'google-generative-ai' ? 'google-generative-ai' as const
       : api === 'openai-responses' ? 'openai-responses' as const
       : 'openai-chat' as const;
-    return { baseUrl, apiKey, model, wireShape, ...(contextWindow ? { contextWindow } : {}) };
+    return {
+      baseUrl,
+      apiKey,
+      model,
+      wireShape,
+      ...(wireShape === 'anthropic' ? { authMode: bearerKey ? 'bearer' as const : 'x-api-key' as const } : {}),
+      ...(contextWindow ? { contextWindow } : {}),
+    };
   },
 };

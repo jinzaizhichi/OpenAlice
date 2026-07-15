@@ -277,7 +277,9 @@ export function ChatLandingPage({ spec }: { spec: { params: { targetWsId?: strin
         lastCredentialByAgent: {},
         recentChatWorkspaceId: null,
       })),
-      configApi.getWorkspaceCredentialDefaults().catch(() => ({ defaults: {}, compatibleByAgent: {} })),
+      configApi.getWorkspaceCredentialDefaults().catch(() => ({
+        defaults: {}, compatibleByAgent: {}, contextWindow: 256_000 as const,
+      })),
     ]).then(([list, preferences, defaults]) => {
       if (!live) return
       setCreds(list)

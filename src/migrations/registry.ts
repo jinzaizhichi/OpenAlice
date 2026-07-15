@@ -34,6 +34,7 @@ import { migration as migration_0019_issue_session_signatures } from './0019_iss
 import { migration as migration_0020_headless_issue_trigger } from './0020_headless_issue_trigger/index.js'
 import { migration as migration_0021_workspace_departure_catalog } from './0021_workspace_departure_catalog/index.js'
 import { migration as migration_0022_connector_service_config } from './0022_connector_service_config/index.js'
+import { migration as migration_0023_google_native_credentials } from './0023_google_native_credentials/index.js'
 
 export const REGISTRY: Migration[] = [
   migration_0008_disable_targetless_cron_jobs,
@@ -51,4 +52,5 @@ export const REGISTRY: Migration[] = [
   migration_0020_headless_issue_trigger,
   migration_0021_workspace_departure_catalog,
   migration_0022_connector_service_config,
+  migration_0023_google_native_credentials,
 ]

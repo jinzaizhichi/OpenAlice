@@ -28,21 +28,21 @@ const demoCredentialPresets = [
     description: 'Google AI via API key',
     category: 'third-party',
     defaultName: 'Google Gemini',
-    hint: 'OpenAlice uses Google’s official OpenAI-compatible endpoint. This credential works with Pi and opencode.',
+    hint: 'OpenAlice uses Google’s native Gemini API. AQ and AIza credentials work with Pi and opencode.',
     setup: {
       apiKeyLabel: 'Google AI API key',
-      apiKeyPlaceholder: 'AIza...',
-      apiKeyHelp: 'Use a Gemini API key from Google AI Studio.',
-      modelHelp: 'Choose a Gemini model exposed by Google’s compatibility endpoint.',
+      apiKeyPlaceholder: 'AQ... or AIza...',
+      apiKeyHelp: 'Use a Gemini API key from Google AI Studio. AQ and AIza keys are supported.',
+      modelHelp: 'Choose a Gemini model exposed by Google’s native API.',
     },
     schema: {
       type: 'object',
       properties: {
         apiKey: { type: 'string' },
-        model: { type: 'string', default: 'gemini-3.5-flash', oneOf: [{ const: 'gemini-3.5-flash', title: 'Gemini 3.5 Flash' }] },
+        model: { type: 'string', default: 'gemini-3.1-flash-lite', oneOf: [{ const: 'gemini-3.1-flash-lite', title: 'Gemini 3.1 Flash-Lite' }] },
       },
     },
-    regions: [{ id: 'default', label: 'Google', wires: { 'openai-chat': 'https://generativelanguage.googleapis.com/v1beta/openai/' } }],
+    regions: [{ id: 'default', label: 'Google', wires: { 'google-generative-ai': 'https://generativelanguage.googleapis.com/v1beta' } }],
   },
   {
     id: 'custom',
@@ -110,18 +110,22 @@ export const configKeysHandlers = [
   // Per-agent default workspace credentials (AI Provider page)
   http.get('/api/config/workspace-credential-defaults', () =>
     HttpResponse.json({
-      defaults: { opencode: { credentialSlug: 'openai-1' } },
+      defaults: { opencode: { credentialSlug: 'openai-1', wireShape: 'openai-chat' } },
       compatibleByAgent: {
         claude: ['anthropic-1'],
         codex: ['openai-1'],
         opencode: ['anthropic-1', 'openai-1'],
         pi: ['anthropic-1', 'openai-1'],
       },
+      contextWindow: 256_000,
     }),
   ),
   http.put('/api/config/workspace-credential-defaults', async ({ request }) => {
-    const body = (await request.json().catch(() => ({}))) as { defaults?: unknown }
-    return HttpResponse.json({ defaults: body.defaults ?? {} })
+    const body = (await request.json().catch(() => ({}))) as { defaults?: unknown; contextWindow?: unknown }
+    return HttpResponse.json({
+      defaults: body.defaults ?? {},
+      contextWindow: typeof body.contextWindow === 'number' ? body.contextWindow : 256_000,
+    })
   }),
 
   http.get('/api/config/workspace-default-agent', () => HttpResponse.json({ agent: 'claude' })),

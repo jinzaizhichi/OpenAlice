@@ -127,11 +127,11 @@ describe('agent credential readiness', () => {
     expect(a.writeAiConfig).toHaveBeenCalledOnce();
     expect(a.writeAiConfig).toHaveBeenCalledWith('/tmp/ws-1', expect.objectContaining({
       apiKey: 'sk-oa',
-      model: 'gpt-5.5',
+      model: 'gpt-5.6',
       wireShape: 'openai-chat',
       contextWindow: 256_000,
     }));
-    expect(vi.mocked(setCredentialLastModel)).toHaveBeenCalledWith('openai-1', 'gpt-5.5');
+    expect(vi.mocked(setCredentialLastModel)).toHaveBeenCalledWith('openai-1', 'gpt-5.6');
   });
 
   it('does not treat a custom credential without a remembered model as injectable', async () => {

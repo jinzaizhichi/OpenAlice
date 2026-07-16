@@ -1,6 +1,38 @@
 import { http, HttpResponse } from 'msw'
 
-const demoCredentialPresets = [
+export const demoCredentialPresets = [
+  {
+    id: 'claude-api',
+    label: 'Claude (API Key)',
+    description: 'Pay per token via Anthropic API',
+    category: 'official',
+    defaultName: 'Claude (API Key)',
+    hint: 'Opus is the recommended complex-agent default; Sonnet balances capability and cost, while Fable is the highest-capability premium tier.',
+    setup: {
+      apiKeyLabel: 'Anthropic API key',
+      apiKeyPlaceholder: 'sk-ant-...',
+      apiKeyHelp: 'Use a key from Anthropic Console. Claude Pro/Max is a separate Claude Code login.',
+      modelHelp: 'Choose an Anthropic API model ID, or paste another exact ID.',
+    },
+    schema: {
+      type: 'object',
+      properties: {
+        apiKey: { type: 'string' },
+        model: {
+          type: 'string',
+          default: 'claude-opus-4-8',
+          oneOf: [
+            { const: 'claude-fable-5', title: 'Claude Fable 5 (Highest capability)' },
+            { const: 'claude-opus-4-8', title: 'Claude Opus 4.8 (Complex agents)' },
+            { const: 'claude-sonnet-5', title: 'Claude Sonnet 5 (Balanced)' },
+            { const: 'claude-haiku-4-5', title: 'Claude Haiku 4.5 (Fastest)' },
+            { const: 'claude-sonnet-4-6', title: 'Claude Sonnet 4.6 (Previous generation)' },
+          ],
+        },
+      },
+    },
+    regions: [{ id: 'official', label: 'Official (api.anthropic.com)', wires: { anthropic: '' } }],
+  },
   {
     id: 'codex-api',
     label: 'OpenAI (API Key)',
@@ -11,13 +43,23 @@ const demoCredentialPresets = [
       apiKeyLabel: 'OpenAI API key',
       apiKeyPlaceholder: 'sk-...',
       apiKeyHelp: 'Use an OpenAI Platform API key. A ChatGPT subscription is a separate Codex CLI login.',
-      modelHelp: 'Choose a model enabled for this API project.',
+      modelHelp: 'Choose a model enabled for this API project, or paste another exact ID.',
     },
     schema: {
       type: 'object',
       properties: {
         apiKey: { type: 'string' },
-        model: { type: 'string', default: 'gpt-5.5', oneOf: [{ const: 'gpt-5.5', title: 'GPT 5.5' }] },
+        model: {
+          type: 'string',
+          default: 'gpt-5.6',
+          oneOf: [
+            { const: 'gpt-5.6', title: 'GPT 5.6 (Sol alias)' },
+            { const: 'gpt-5.6-terra', title: 'GPT 5.6 Terra (Balanced)' },
+            { const: 'gpt-5.6-luna', title: 'GPT 5.6 Luna (Cost-efficient)' },
+            { const: 'gpt-5.5', title: 'GPT 5.5 (Previous generation)' },
+            { const: 'gpt-5.4', title: 'GPT 5.4 (Previous generation)' },
+          ],
+        },
       },
     },
     regions: [{ id: 'official', label: 'OpenAI (api.openai.com)', wires: { 'openai-responses': '', 'openai-chat': '' } }],
@@ -107,7 +149,7 @@ export const configKeysHandlers = [
     HttpResponse.json({
       credentials: [
         { slug: 'anthropic-1', vendor: 'anthropic', label: 'Anthropic', authType: 'api-key', wires: { anthropic: '' }, apiKey: null, hasApiKey: true, lastModel: 'claude-opus-4-8' },
-        { slug: 'openai-1', vendor: 'openai', label: 'OpenAI', authType: 'api-key', wires: { 'openai-responses': '', 'openai-chat': '' }, apiKey: null, hasApiKey: true, lastModel: 'gpt-5.5' },
+        { slug: 'openai-1', vendor: 'openai', label: 'OpenAI', authType: 'api-key', wires: { 'openai-responses': '', 'openai-chat': '' }, apiKey: null, hasApiKey: true, lastModel: 'gpt-5.6' },
       ],
     }),
   ),

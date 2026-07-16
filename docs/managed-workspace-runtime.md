@@ -96,6 +96,13 @@ usable before OpenAlice updates its catalog. Gemini suggestions should contain
 general-purpose text/tool models only; image, Live, TTS, embedding, and managed
 agent model IDs are different product surfaces and do not belong in Quick Chat.
 
+Keep subscription-backed CLI profiles distinct from API-key credentials.
+Claude Code subscription profiles should prefer its native aliases (`default`,
+`best`, `opus`, `sonnet`, `haiku`, and `opusplan`) so the CLI and account tier
+resolve current availability; Anthropic API credentials should suggest exact
+API model IDs. Codex subscription and OpenAI API catalogs may share a model
+family only when official documentation confirms both surfaces support it.
+
 Editing must round-trip the stored `lastModel` and any endpoint that no longer
 matches a current preset. A catalog refresh must never silently replace either
 value merely because the user opened and saved the form.

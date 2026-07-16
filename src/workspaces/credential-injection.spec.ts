@@ -291,10 +291,12 @@ describe('matchCredentialByApiKey', () => {
 describe('resolveInjectionModel', () => {
   it('prefers the credential\'s remembered lastModel', () => {
     expect(resolveInjectionModel({ vendor: 'openai', lastModel: 'gpt-5.5-custom' })).toBe('gpt-5.5-custom')
+    expect(resolveInjectionModel({ vendor: 'openai', lastModel: 'gpt-5.5' })).toBe('gpt-5.5')
   })
 
-  it('falls back to the vendor flagship when no lastModel', () => {
+  it('falls back to the vendor recommendation when no lastModel', () => {
     expect(resolveInjectionModel({ vendor: 'anthropic' })).toBe('claude-opus-4-8')
+    expect(resolveInjectionModel({ vendor: 'openai' })).toBe('gpt-5.6')
     expect(resolveInjectionModel({ vendor: 'glm' })).toBe('glm-5.2')
     expect(resolveInjectionModel({ vendor: 'longcat' })).toBe('LongCat-2.0')
   })

@@ -241,7 +241,7 @@ describe('POST /quick-chat — loginless credential injection', () => {
     expect(spawn).not.toHaveBeenCalled();
   });
 
-  it('opencode + compatible cred → injects it (flagship model) then spawns', async () => {
+  it('opencode + compatible cred → injects the current vendor recommendation then spawns', async () => {
     vi.mocked(readCredentials).mockResolvedValue({ 'openai-1': openaiKey });
     const { app, opencode, spawn } = build();
     const r = await quickChat(app, { prompt: 'hi', agent: 'opencode' });
@@ -250,10 +250,10 @@ describe('POST /quick-chat — loginless credential injection', () => {
     const cred = (opencode.writeAiConfig.mock.calls[0] as any[])[1];
     expect(cred.apiKey).toBe('sk-oa');
     expect(cred.wireShape).toBe('openai-chat');
-    expect(cred.model).toBe('gpt-5.5'); // vendor flagship — no lastModel yet
+    expect(cred.model).toBe('gpt-5.6'); // current vendor recommendation — no lastModel yet
     expect(cred.contextWindow).toBe(256_000);
     // model remembered on the cred for next time
-    expect(vi.mocked(setCredentialLastModel)).toHaveBeenCalledWith('openai-1', 'gpt-5.5');
+    expect(vi.mocked(setCredentialLastModel)).toHaveBeenCalledWith('openai-1', 'gpt-5.6');
     expect(spawn).toHaveBeenCalledOnce();
   });
 

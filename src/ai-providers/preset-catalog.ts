@@ -81,15 +81,19 @@ export const CLAUDE_OAUTH: PresetDef = {
   description: 'Use your Claude Pro/Max subscription',
   category: 'official',
   defaultName: 'Claude (Pro/Max)',
-  hint: 'Requires Claude Code CLI login — run `claude login` in your terminal first. Model is switchable here or from the profile list anytime; Opus is most capable but burns subscription quota faster, so consider Sonnet for routine work.',
+  hint: 'Requires Claude Code CLI login — run `claude login` in your terminal first. Native aliases follow the models available to that account: keep Default for the plan recommendation, use Best/Opus for difficult work, or Sonnet for routine work.',
   zodSchema: z.object({
     backend: z.literal('agent-sdk'),
     loginMethod: z.literal('claudeai'),
-    model: z.string().default('claude-opus-4-8').describe('Model'),
+    model: z.string().default('default').describe('Model'),
   }),
   models: [
-    { id: 'claude-opus-4-8', label: 'Claude Opus 4.8' },
-    { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
+    { id: 'default', label: 'Default (Recommended for your account)' },
+    { id: 'best', label: 'Best (Most capable available)' },
+    { id: 'opus', label: 'Opus (Latest available)' },
+    { id: 'sonnet', label: 'Sonnet (Latest available)' },
+    { id: 'haiku', label: 'Haiku (Fastest available)' },
+    { id: 'opusplan', label: 'Opus planning → Sonnet execution' },
   ],
 }
 
@@ -99,7 +103,7 @@ export const CLAUDE_API: PresetDef = {
   description: 'Pay per token via Anthropic API',
   category: 'official',
   defaultName: 'Claude (API Key)',
-  hint: 'Model is switchable here or from the profile list anytime. Opus is ~5× the cost of Sonnet.',
+  hint: 'Model is switchable here or from the profile list anytime. Opus is the recommended complex-agent default; Sonnet balances capability and cost, while Fable is the highest-capability premium tier.',
   zodSchema: z.object({
     backend: z.literal('agent-sdk'),
     loginMethod: z.literal('api-key'),
@@ -107,15 +111,18 @@ export const CLAUDE_API: PresetDef = {
     apiKey: z.string().min(1).describe('Anthropic API key'),
   }),
   models: [
-    { id: 'claude-opus-4-8', label: 'Claude Opus 4.8' },
-    { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
+    { id: 'claude-fable-5', label: 'Claude Fable 5 (Highest capability)' },
+    { id: 'claude-opus-4-8', label: 'Claude Opus 4.8 (Complex agents)' },
+    { id: 'claude-sonnet-5', label: 'Claude Sonnet 5 (Balanced)' },
+    { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5 (Fastest)' },
+    { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (Previous generation)' },
   ],
   regions: [{ id: 'official', label: 'Official (api.anthropic.com)', wires: { anthropic: '' } }],
   setup: {
     apiKeyLabel: 'Anthropic API key',
     apiKeyPlaceholder: 'sk-ant-...',
     apiKeyHelp: 'Use a key from Anthropic Console. Claude Pro/Max is a separate Claude Code login and does not belong in this field.',
-    modelHelp: 'Choose an Anthropic API model ID. OpenAlice tests this exact model and remembers it as the default for this credential.',
+    modelHelp: 'Choose an Anthropic API model ID, or paste another exact ID. Opus 4.8 stays the complex-agent default; Fable 5 is the premium capability tier and Sonnet 5 is the balanced tier.',
   },
   writeOnlyFields: ['apiKey'],
 }
@@ -132,11 +139,14 @@ export const CODEX_OAUTH: PresetDef = {
   zodSchema: z.object({
     backend: z.literal('codex'),
     loginMethod: z.literal('codex-oauth'),
-    model: z.string().default('gpt-5.5').describe('Model'),
+    model: z.string().default('gpt-5.6').describe('Model'),
   }),
   models: [
-    { id: 'gpt-5.5', label: 'GPT 5.5' },
-    { id: 'gpt-5.4', label: 'GPT 5.4' },
+    { id: 'gpt-5.6', label: 'GPT 5.6 (Power · Sol)' },
+    { id: 'gpt-5.6-terra', label: 'GPT 5.6 Terra (Balanced)' },
+    { id: 'gpt-5.6-luna', label: 'GPT 5.6 Luna (Fastest)' },
+    { id: 'gpt-5.5', label: 'GPT 5.5 (Previous generation)' },
+    { id: 'gpt-5.4', label: 'GPT 5.4 (Previous generation)' },
   ],
 }
 
@@ -149,12 +159,15 @@ export const CODEX_API: PresetDef = {
   zodSchema: z.object({
     backend: z.literal('codex'),
     loginMethod: z.literal('api-key'),
-    model: z.string().default('gpt-5.5').describe('Model'),
+    model: z.string().default('gpt-5.6').describe('Model'),
     apiKey: z.string().min(1).describe('OpenAI API key'),
   }),
   models: [
-    { id: 'gpt-5.5', label: 'GPT 5.5' },
-    { id: 'gpt-5.4', label: 'GPT 5.4' },
+    { id: 'gpt-5.6', label: 'GPT 5.6 (Sol alias)' },
+    { id: 'gpt-5.6-terra', label: 'GPT 5.6 Terra (Balanced)' },
+    { id: 'gpt-5.6-luna', label: 'GPT 5.6 Luna (Cost-efficient)' },
+    { id: 'gpt-5.5', label: 'GPT 5.5 (Previous generation)' },
+    { id: 'gpt-5.4', label: 'GPT 5.4 (Previous generation)' },
   ],
   // Same key + base; the shape is how you call it. Responses is OpenAI's
   // current API (what codex speaks); Chat Completions is the legacy shape
@@ -164,7 +177,7 @@ export const CODEX_API: PresetDef = {
     apiKeyLabel: 'OpenAI API key',
     apiKeyPlaceholder: 'sk-...',
     apiKeyHelp: 'Use an OpenAI Platform API key. A ChatGPT subscription is a separate Codex CLI login and does not belong in this field.',
-    modelHelp: 'Choose a model enabled for this API project. The saved model becomes this credential’s default in new Workspace injections.',
+    modelHelp: 'Choose a model enabled for this API project, or paste another exact ID. GPT 5.6 is the current Sol alias; Terra balances capability and cost, while Luna favors efficient high-volume work.',
   },
   writeOnlyFields: ['apiKey'],
 }
@@ -435,17 +448,17 @@ export const PRESET_CATALOG: PresetDef[] = [
 ]
 
 /**
- * The capable-flagship model to seed a fresh injection with when a credential
- * has no remembered `lastModel` yet (keyed by `CredentialVendor`). This is only
- * the very-first-run default — once a model is run it's remembered on the cred —
- * so it favors the most capable tier (a trading agent wants the flagship, not a
- * fast/cheap variant), mirroring the preset model lists. `custom` has no
- * canonical model (free-form), so it's absent and the caller falls back to
- * "let the runtime decide".
+ * The recommended model to seed a fresh injection with when a credential has
+ * no remembered `lastModel` yet (keyed by `CredentialVendor`). This is only the
+ * very-first-run default — once a model is run it's remembered on the cred — so
+ * each provider can balance agent capability, availability, and cost rather
+ * than inheriting whichever discovery suggestion happens to be listed first.
+ * `custom` has no canonical model (free-form), so it's absent and the caller
+ * falls back to "let the runtime decide".
  */
 export const DEFAULT_MODEL_BY_VENDOR: Record<string, string> = {
   anthropic: 'claude-opus-4-8',
-  openai: 'gpt-5.5',
+  openai: 'gpt-5.6',
   google: 'gemini-3.1-flash-lite',
   minimax: 'MiniMax-M3',
   glm: 'glm-5.2',

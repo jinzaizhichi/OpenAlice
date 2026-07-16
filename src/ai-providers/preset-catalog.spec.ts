@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_MODEL_BY_VENDOR, GEMINI, LONGCAT } from './preset-catalog.js';
+import {
+  CLAUDE_API,
+  CLAUDE_OAUTH,
+  CODEX_API,
+  CODEX_OAUTH,
+  DEFAULT_MODEL_BY_VENDOR,
+  GEMINI,
+  LONGCAT,
+} from './preset-catalog.js';
 import { BUILTIN_PRESETS } from './presets.js';
 
 describe('LONGCAT preset', () => {
@@ -16,6 +24,39 @@ describe('LONGCAT preset', () => {
 });
 
 describe('credential form catalog', () => {
+  it('uses native Claude Code aliases for subscription profiles', () => {
+    expect(CLAUDE_OAUTH.models?.map((model) => model.id)).toEqual([
+      'default',
+      'best',
+      'opus',
+      'sonnet',
+      'haiku',
+      'opusplan',
+    ]);
+    expect(CLAUDE_OAUTH.zodSchema.parse({
+      backend: 'agent-sdk',
+      loginMethod: 'claudeai',
+    })).toMatchObject({ model: 'default' });
+  });
+
+  it('offers current Anthropic API tiers while keeping Opus as the complex-agent default', () => {
+    expect(CLAUDE_API.models?.map((model) => model.id)).toEqual([
+      'claude-fable-5',
+      'claude-opus-4-8',
+      'claude-sonnet-5',
+      'claude-haiku-4-5',
+      'claude-sonnet-4-6',
+    ]);
+    expect(DEFAULT_MODEL_BY_VENDOR['anthropic']).toBe('claude-opus-4-8');
+  });
+
+  it('offers the GPT 5.6 family to Codex subscriptions and OpenAI API keys', () => {
+    const expected = ['gpt-5.6', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.4'];
+    expect(CODEX_OAUTH.models?.map((model) => model.id)).toEqual(expected);
+    expect(CODEX_API.models?.map((model) => model.id)).toEqual(expected);
+    expect(DEFAULT_MODEL_BY_VENDOR['openai']).toBe('gpt-5.6');
+  });
+
   it('offers current general-purpose Gemini tiers without mixing in media-only models', () => {
     expect(GEMINI.models?.map((model) => model.id)).toEqual([
       'gemini-3.5-flash',

@@ -453,7 +453,7 @@ export const workspacesHandlers = [
   http.get('/api/workspaces/credentials', () =>
     HttpResponse.json({
       credentials: [
-        { slug: 'openai-1', vendor: 'openai', label: 'OpenAI', authType: 'api-key', wires: { 'openai-chat': '' }, lastModel: 'gpt-5.5', resolvedModel: 'gpt-5.5', apiKey: null },
+        { slug: 'openai-1', vendor: 'openai', label: 'OpenAI', authType: 'api-key', wires: { 'openai-chat': '' }, lastModel: 'gpt-5.6', resolvedModel: 'gpt-5.6', apiKey: null },
         { slug: 'minimax-1', vendor: 'minimax', label: 'MiniMax', authType: 'api-key', wires: { 'openai-chat': '' }, lastModel: 'MiniMax-M2.1', resolvedModel: 'MiniMax-M2.1', apiKey: null },
       ],
     }),

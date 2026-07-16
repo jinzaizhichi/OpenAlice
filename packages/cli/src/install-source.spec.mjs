@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   DEFAULT_INSTALL_SOURCE,
+  installedContentIdentity,
   installSourcesMatch,
   readInstallSource,
 } from './install-source.mjs'
@@ -44,5 +45,11 @@ describe('OpenAlice install source', () => {
     }
     expect(installSourcesMatch(DEFAULT_INSTALL_SOURCE, { ...DEFAULT_INSTALL_SOURCE })).toBe(true)
     expect(installSourcesMatch(DEFAULT_INSTALL_SOURCE, dev)).toBe(false)
+  })
+
+  it('derives installed content identity only from an immutable release directory', () => {
+    expect(installedContentIdentity('file:///tmp/.openalice/cli-versions/master-0123456789abcdef/src/install-source.mjs'))
+      .toBe('0123456789abcdef')
+    expect(installedContentIdentity('file:///tmp/OpenAlice/packages/cli/src/install-source.mjs')).toBeNull()
   })
 })

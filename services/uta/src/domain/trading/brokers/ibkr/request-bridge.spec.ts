@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import Decimal from 'decimal.js'
-import { Contract } from '@traderalice/ibkr'
+import { Contract, NO_VALID_ID, TickTypeEnum } from '@traderalice/ibkr'
 import { RequestBridge } from './request-bridge.js'
 
 function stk(conId: number, symbol: string): Contract {
@@ -31,6 +31,84 @@ describe('RequestBridge — error routing', () => {
     const b = new RequestBridge()
     // no pending request — must simply not throw
     expect(() => b.error(-1, 0, 2104, 'Market data farm connection is OK')).not.toThrow()
+  })
+
+  it('marks 1100 dead immediately and treats 1102 as a recovery nudge, not proof of life', () => {
+    const b = new RequestBridge()
+    const events: Array<{ state: string; error?: string }> = []
+    b.setConnectionStateListener((event) => events.push(event))
+
+    b.error(NO_VALID_ID, 0, 1100, 'Connectivity between IBKR and TWS has been lost')
+    expect(b.connectionDead).toBe(true)
+    expect(events.at(-1)).toMatchObject({ state: 'dead' })
+
+    b.error(NO_VALID_ID, 0, 1102, 'Connectivity restored - data maintained')
+    expect(b.connectionDead).toBe(true)
+    expect(events.at(-1)).toEqual({ state: 'restored' })
+
+    b.markAlive()
+    expect(b.connectionDead).toBe(false)
+    expect(events.at(-1)).toEqual({ state: 'alive' })
+  })
+})
+
+describe('RequestBridge — socket probes and snapshots', () => {
+  it('coalesces concurrent current-time probes onto one wire request', async () => {
+    const b = new RequestBridge()
+    const reqCurrentTime = vi.fn()
+    b.setClient({ reqCurrentTime } as never)
+
+    const first = b.requestCurrentTime()
+    const second = b.requestCurrentTime()
+    expect(reqCurrentTime).toHaveBeenCalledOnce()
+
+    b.currentTime(1_784_289_600)
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      1_784_289_600,
+      1_784_289_600,
+    ])
+  })
+
+  it('clears a failed current-time probe so the next write can retry', async () => {
+    const b = new RequestBridge()
+    const reqCurrentTime = vi.fn()
+      .mockImplementationOnce(() => { throw new Error('socket write failed') })
+      .mockImplementationOnce(() => {})
+    b.setClient({ reqCurrentTime } as never)
+
+    await expect(b.requestCurrentTime()).rejects.toThrow(/socket write failed/)
+    const retry = b.requestCurrentTime()
+    b.currentTime(1_784_289_601)
+
+    await expect(retry).resolves.toBe(1_784_289_601)
+    expect(reqCurrentTime).toHaveBeenCalledTimes(2)
+  })
+
+  it('can resolve option-mark snapshots as soon as both bid and ask arrive', async () => {
+    const b = new RequestBridge()
+    const snapshot = b.requestSnapshot(71, 5_000, { resolveOnBidAsk: true })
+
+    b.tickPrice(71, TickTypeEnum.BID, 2, {} as never)
+    b.tickPrice(71, TickTypeEnum.ASK, 4, {} as never)
+
+    await expect(snapshot).resolves.toMatchObject({ bid: 2, ask: 4 })
+  })
+
+  it('keeps ordinary quote snapshots open until tickSnapshotEnd', async () => {
+    const b = new RequestBridge()
+    let settled = false
+    const snapshot = b.requestSnapshot(72, 5_000).then((value) => {
+      settled = true
+      return value
+    })
+
+    b.tickPrice(72, TickTypeEnum.BID, 2, {} as never)
+    b.tickPrice(72, TickTypeEnum.ASK, 4, {} as never)
+    await Promise.resolve()
+    expect(settled).toBe(false)
+
+    b.tickSnapshotEnd(72)
+    await expect(snapshot).resolves.toMatchObject({ bid: 2, ask: 4 })
   })
 })
 

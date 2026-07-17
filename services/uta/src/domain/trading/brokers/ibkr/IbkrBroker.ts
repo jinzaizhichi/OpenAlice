@@ -35,15 +35,27 @@ import {
   type Quote,
   type MarketClock,
   type BrokerConfigField,
+  type BrokerConnectionStateEvent,
   type TpSlParams,
   type ExpandContractFilters,
   type ContractExpansion,
 } from '../types.js'
 import '../../contract-ext.js'
-import { aggregateAccountFromPositions } from '../../position-math.js'
+import { derivePositionMath } from '../../position-math.js'
 import { RequestBridge } from './request-bridge.js'
 import { resolveSymbol } from './ibkr-contracts.js'
 import type { IbkrBrokerConfig } from './ibkr-types.js'
+
+const WRITE_LIVENESS_TIMEOUT_MS = 3_000
+const OPTION_MARK_SUCCESS_TTL_MS = 15_000
+const OPTION_MARK_FAILURE_TTL_MS = 60_000
+const OPTION_MARK_CONCURRENCY = 8
+
+interface OptionMarkOverlay {
+  marketPrice: string
+  marketValue: string
+  unrealizedPnL: string
+}
 
 /** IBKR models are mutable because the wire decoder fills them field by field.
  * Broker routing must not let a caller mutate a cached canonical contract (or
@@ -102,6 +114,13 @@ export class IbkrBroker implements IBroker {
   /** A promise cache deduplicates simultaneous quote/order resolution for the
    * same conId. Cached contracts are canonical TWS values; callers get clones. */
   private readonly conIdContracts = new Map<number, Promise<Contract>>()
+  /** Briefly cache successful marks and failed-entitlement attempts so a UI
+   * poll cannot create an unbounded snapshot-request loop. */
+  private readonly optionMarkCache = new Map<number, {
+    expiresAt: number
+    overlay: OptionMarkOverlay | null
+  }>()
+  private readonly optionMarkRequests = new Map<number, Promise<OptionMarkOverlay | null>>()
 
   constructor(config: IbkrBrokerConfig) {
     this.config = config
@@ -126,13 +145,34 @@ export class IbkrBroker implements IBroker {
     }
   }
 
+  /** Confirm liveness on the same ordered socket immediately before a broker
+   * write. The 45s heartbeat is sufficient for stale-read containment but
+   * leaves a blind window that is unacceptable for place/modify/cancel. */
+  private async _ensureWriteAlive(): Promise<void> {
+    this._ensureAlive()
+    try {
+      await this.bridge.requestCurrentTime(WRITE_LIVENESS_TIMEOUT_MS)
+      this._ensureAlive()
+    } catch (err) {
+      this.bridge.markDead('Write-path liveness probe failed')
+      throw new BrokerError(
+        'NETWORK',
+        `TWS/Gateway write-path liveness check failed; order was not transmitted: ${err instanceof Error ? err.message : String(err)}`,
+      )
+    }
+  }
+
+  setConnectionStateListener(listener: ((event: BrokerConnectionStateEvent) => void) | null): void {
+    this.bridge.setConnectionStateListener(listener)
+  }
+
   private startHeartbeat(): void {
     if (this.heartbeatTimer_) clearInterval(this.heartbeatTimer_)
     this.heartbeatTimer_ = setInterval(() => {
       if (this.bridge.connectionDead) return
       this.bridge.requestCurrentTime(5000).catch(() => {
         console.warn(`IbkrBroker[${this.id}]: heartbeat failed — marking connection dead`)
-        this.bridge.markDead()
+        this.bridge.markDead('TWS/Gateway heartbeat timed out')
       })
     }, 45_000)
     // Don't hold the process open for the probe
@@ -451,6 +491,7 @@ export class IbkrBroker implements IBroker {
     try {
       this._ensureAlive()
       const routedContract = await this.resolveRoutableContract(contract)
+      await this._ensureWriteAlive()
       const orderId = this.bridge.getNextOrderId()
       const promise = this.bridge.requestOrder(orderId)
       this.client.placeOrder(orderId, routedContract, order)
@@ -485,6 +526,7 @@ export class IbkrBroker implements IBroker {
       if (changes.trailStopPrice != null) mergedOrder.trailStopPrice = changes.trailStopPrice
 
       const routedContract = await this.resolveRoutableContract(original.contract)
+      await this._ensureWriteAlive()
       const numericId = parseInt(orderId, 10)
       const promise = this.bridge.requestOrder(numericId)
       this.client.placeOrder(numericId, routedContract, mergedOrder)
@@ -502,7 +544,7 @@ export class IbkrBroker implements IBroker {
 
   async cancelOrder(orderId: string, orderCancel?: OrderCancel): Promise<PlaceOrderResult> {
     try {
-      this._ensureAlive()
+      await this._ensureWriteAlive()
       const numericId = parseInt(orderId, 10)
       const promise = this.bridge.requestOrder(numericId)
       this.client.cancelOrder(numericId, orderCancel ?? new OrderCancel())
@@ -549,14 +591,9 @@ export class IbkrBroker implements IBroker {
    *
    * Data source: reqAccountUpdates → accountDownloadEnd callback.
    *
-   * netLiquidation is reconstructed from cash + Σ(position.marketValue)
-   * because TWS's account-level NetLiquidation tag is cached server-side
-   * and refreshes less frequently than position-level data.
-   *
-   * Note: position marketPrice comes from updatePortfolio() callbacks,
-   * which TWS stops pushing after ~20:00 ET (see README.md "TWS Market
-   * Data Channels"). During overnight hours, the reconstructed netLiq
-   * will be stale even though Blue Ocean ATS prices may be moving.
+   * NetLiquidation is the broker's account-level value whenever present.
+   * Position-derived reconstruction is fallback-only, so adding a foreign-
+   * currency holding cannot silently change the meaning of the field.
    */
   /** TWS-provided FX rate (currency → base) from the ExchangeRate account
    *  tags. Returns null when TWS didn't send one for this currency. */
@@ -574,14 +611,6 @@ export class IbkrBroker implements IBroker {
     const baseCurrency = download.values.get('BaseCurrency') ?? 'USD'
     const totalCashValue = new Decimal(download.values.get('TotalCashValue') ?? '0')
 
-    // Position-derived account math is only currency-safe when every line is
-    // in the base currency. Mixed books (HKD stock + USD stock) used to
-    // blind-sum different units (ANG-101: HKD -4767 + USD +369 reported as
-    // USD -4398). TWS hands us per-currency ExchangeRate tags — convert per
-    // position; if a rate is missing, fall back to TWS's own consolidated
-    // NetLiquidation tag (already FX-correct) rather than summing garbage.
-    const mixed = download.positions.some((pos) => (pos.currency || baseCurrency) !== baseCurrency)
-
     let positionUnrealizedPnL: Decimal | null = new Decimal(0)
     let positionMarketValue: Decimal | null = new Decimal(0)
     for (const pos of download.positions) {
@@ -595,17 +624,21 @@ export class IbkrBroker implements IBroker {
       positionMarketValue = positionMarketValue!.plus(sided.mul(rate))
     }
 
-    const brokerNetLiq = new Decimal(download.values.get('NetLiquidation') ?? '0')
-    // Freshness-vs-authority: same-currency books keep the reconstructed
-    // value (position marks refresh faster than the server-cached tag, see
-    // docstring above). Mixed books prefer the broker tag (issue #314) —
-    // reconstruction is rate-converted and only used when the tag is absent.
+    const brokerNetLiqRaw = download.values.get('NetLiquidation')
+    let brokerNetLiq: Decimal | null = null
+    if (brokerNetLiqRaw != null) {
+      try {
+        const parsed = new Decimal(brokerNetLiqRaw)
+        if (parsed.isFinite()) brokerNetLiq = parsed
+      } catch { /* fall back below */ }
+    }
+    // NetLiquidation is an account-level broker fact. Do not make the same
+    // field switch semantics based on whether the user happens to hold a
+    // foreign-currency position. Local reconstruction is fallback-only.
     const reconstructedNetLiq = positionMarketValue !== null
       ? totalCashValue.plus(positionMarketValue)
       : null
-    const netLiquidation = download.positions.length === 0 ? brokerNetLiq
-      : mixed ? (brokerNetLiq.isZero() ? (reconstructedNetLiq ?? brokerNetLiq) : brokerNetLiq)
-      : aggregateAccountFromPositions(totalCashValue, download.positions).netLiquidation
+    const netLiquidation = brokerNetLiq ?? reconstructedNetLiq ?? new Decimal(0)
 
     const unrealizedPnL = download.positions.length > 0 && positionUnrealizedPnL !== null
       ? positionUnrealizedPnL
@@ -645,7 +678,82 @@ export class IbkrBroker implements IBroker {
     this._ensureAlive()
     const download = this.bridge.getAccountCache()
     if (!download) throw new BrokerError('NETWORK', 'Account data not yet available')
-    return download.positions
+    const output = [...download.positions]
+    const optionIndexes = output
+      .map((position, index) => ({ position, index }))
+      .filter(({ position }) => position.contract.secType === 'OPT' || position.contract.secType === 'FOP')
+    if (optionIndexes.length === 0) return output
+
+    let cursor = 0
+    const worker = async (): Promise<void> => {
+      while (cursor < optionIndexes.length) {
+        const item = optionIndexes[cursor++]
+        output[item.index] = await this.refreshOptionPosition(item.position)
+      }
+    }
+    await Promise.all(Array.from(
+      { length: Math.min(OPTION_MARK_CONCURRENCY, optionIndexes.length) },
+      () => worker(),
+    ))
+    return output
+  }
+
+  private async refreshOptionPosition(position: Position): Promise<Position> {
+    const conId = position.contract.conId
+    if (!conId) return position
+
+    const now = Date.now()
+    const cached = this.optionMarkCache.get(conId)
+    if (cached && cached.expiresAt > now) {
+      return cached.overlay ? { ...position, ...cached.overlay } : position
+    }
+
+    let pending = this.optionMarkRequests.get(conId)
+    if (!pending) {
+      pending = this.fetchOptionMark(position)
+      this.optionMarkRequests.set(conId, pending)
+    }
+    try {
+      const overlay = await pending
+      return overlay ? { ...position, ...overlay } : position
+    } finally {
+      if (this.optionMarkRequests.get(conId) === pending) this.optionMarkRequests.delete(conId)
+    }
+  }
+
+  private async fetchOptionMark(position: Position): Promise<OptionMarkOverlay | null> {
+    const conId = position.contract.conId
+    try {
+      const { snap } = await this.requestSnapshot(position.contract, { resolveOnBidAsk: true })
+      const bid = new Decimal(snap.bid ?? 0)
+      const ask = new Decimal(snap.ask ?? 0)
+      if (!bid.isFinite() || !ask.isFinite() || bid.lte(0) || ask.lte(0)) {
+        throw new BrokerError('EXCHANGE', 'IBKR option snapshot did not include a positive bid and ask')
+      }
+      const marketPrice = bid.plus(ask).div(2).toString()
+      const derived = derivePositionMath({
+        quantity: position.quantity,
+        marketPrice,
+        avgCost: position.avgCost,
+        multiplier: position.multiplier,
+        side: position.side,
+      })
+      const overlay: OptionMarkOverlay = { marketPrice, ...derived }
+      this.optionMarkCache.set(conId, {
+        expiresAt: Date.now() + OPTION_MARK_SUCCESS_TTL_MS,
+        overlay,
+      })
+      return overlay
+    } catch {
+      // Missing market-data entitlement and closed-market snapshots are normal
+      // fallbacks. Preserve the broker's updatePortfolio values and suppress
+      // repeated requests briefly instead of turning a read into an outage.
+      this.optionMarkCache.set(conId, {
+        expiresAt: Date.now() + OPTION_MARK_FAILURE_TTL_MS,
+        overlay: null,
+      })
+      return null
+    }
   }
 
   async getOrders(orderIds: string[]): Promise<OpenOrder[]> {
@@ -702,12 +810,7 @@ export class IbkrBroker implements IBroker {
    */
   async getQuote(contract: Contract): Promise<Quote> {
     this._ensureAlive()
-    const routedContract = await this.resolveRoutableContract(contract)
-
-    const reqId = this.bridge.allocReqId()
-    const promise = this.bridge.requestSnapshot(reqId)
-    this.client.reqMktData(reqId, routedContract, '', true, false, [])
-    const snap = await promise
+    const { routedContract, snap } = await this.requestSnapshot(contract)
 
     return {
       contract: routedContract,
@@ -719,6 +822,20 @@ export class IbkrBroker implements IBroker {
       low: snap.low != null ? String(snap.low) : undefined,
       timestamp: snap.lastTimestamp ? new Date(snap.lastTimestamp * 1000) : new Date(),
     }
+  }
+
+  private async requestSnapshot(
+    contract: Contract,
+    options: { resolveOnBidAsk?: boolean } = {},
+  ): Promise<{ routedContract: Contract; snap: import('./ibkr-types.js').TickSnapshot }> {
+    const routedContract = await this.resolveRoutableContract(contract)
+    const reqId = this.bridge.allocReqId()
+    const promise = this.bridge.requestSnapshot(reqId, undefined, options)
+    // `regulatorySnapshot=false`: never opt the account into per-request paid
+    // US regulatory snapshots. Live entitlement or free delayed data may still
+    // satisfy the ordinary snapshot; otherwise callers retain cached marks.
+    this.client.reqMktData(reqId, routedContract, '', true, false, [])
+    return { routedContract, snap: await promise }
   }
 
   async getMarketClock(): Promise<MarketClock> {

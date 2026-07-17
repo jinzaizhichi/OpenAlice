@@ -155,6 +155,45 @@ files under `data/` (gitignored), run with
 importing `readUTAsConfig` + `createBroker` by absolute/relative path.
 Delete after use.
 
+## IBKR half-open and option-mark acceptance
+
+These two read-only checks cover the failure modes from issues #294 and #314.
+They do not authorize an order submission and are safe to run with the UTA and
+Gateway both configured read-only.
+
+### Silent half-open recovery
+
+Freeze the Gateway process/container without closing its TCP socket (for a
+Docker Gateway, `docker pause <container>` is deterministic). Always install a
+shell trap or otherwise guarantee `docker unpause <container>` on exit.
+
+Acceptance:
+
+1. Before the drop, `/api/trading/uta` reports `healthy/readable` and account
+   reads succeed.
+2. Within the heartbeat interval plus timeout (currently at most about 50s),
+   UTA moves directly to `offline/down`; it must not require six caller-driven
+   cache-read failures.
+3. While dead, account/position reads refuse rather than serving stale cache.
+4. After unpause, recovery reconnects and passes a private account read before
+   returning to `healthy/readable`.
+5. The unit-level write boundary separately proves place/modify/cancel performs
+   `reqCurrentTime` before the client send and never calls the send method when
+   that probe times out. Do not submit a live order merely to test this gate.
+
+### Option position mark overlay
+
+With an `OPT` or `FOP` paper position and an entitled or delayed quote:
+
+1. Positive snapshot bid+ask produces midpoint `(bid + ask) / 2`.
+2. `marketValue` and `unrealizedPnL` are recomputed through
+   `derivePositionMath`, including quantity, side, and contract multiplier.
+3. The broker-owned `updatePortfolio()` cache is not mutated.
+4. Missing entitlement, incomplete bid/ask, or timeout returns the cached row;
+   it must not fail the whole portfolio read.
+5. Requests use `regulatorySnapshot=false`; this acceptance must never opt the
+   account into paid per-request regulatory snapshots.
+
 ## Scenario catalog
 
 Run the relevant S1–S14 scenarios for a trading-path change; run the full

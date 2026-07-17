@@ -44,12 +44,15 @@ function brokerWithContractIo(resolvedContract = usdChfContract()): {
   bridge: {
     requestCollector: ReturnType<typeof vi.fn>
     requestSnapshot: ReturnType<typeof vi.fn>
+    requestCurrentTime: ReturnType<typeof vi.fn>
     requestOrder: ReturnType<typeof vi.fn>
+    markDead: ReturnType<typeof vi.fn>
   }
   client: {
     reqContractDetails: ReturnType<typeof vi.fn>
     reqMktData: ReturnType<typeof vi.fn>
     placeOrder: ReturnType<typeof vi.fn>
+    cancelOrder: ReturnType<typeof vi.fn>
   }
 } {
   const broker = new IbkrBroker({ id: 'ibkr-test', host: '127.0.0.1', port: 7497, clientId: 91 })
@@ -58,13 +61,16 @@ function brokerWithContractIo(resolvedContract = usdChfContract()): {
     allocReqId: vi.fn(() => 17),
     requestCollector: vi.fn(async () => [{ contract: Object.assign(new Contract(), resolvedContract) }]),
     requestSnapshot: vi.fn(async () => ({ last: 0.8, bid: 0.79, ask: 0.81, volume: 1 })),
+    requestCurrentTime: vi.fn(async () => 1_784_289_600),
     getNextOrderId: vi.fn(() => 42),
     requestOrder: vi.fn(async () => ({ orderState: { status: 'Submitted' } })),
+    markDead: vi.fn(),
   }
   const client = {
     reqContractDetails: vi.fn(),
     reqMktData: vi.fn(),
     placeOrder: vi.fn(),
+    cancelOrder: vi.fn(),
   }
   ;(broker as unknown as { bridge: unknown }).bridge = bridge
   ;(broker as unknown as { client: unknown }).client = client
@@ -241,7 +247,7 @@ describe('IbkrBroker — canonical conId contract resolution', () => {
       side: 'long',
       quantity: new Decimal('1'),
     }])
-    const placeOrder = vi.fn(async () => ({ success: true, orderId: '42' }))
+    const placeOrder = vi.fn(async (_contract: Contract, _order: Order) => ({ success: true, orderId: '42' }))
     ;(broker as unknown as { placeOrder: unknown }).placeOrder = placeOrder
 
     const result = await broker.closePosition(Object.assign(new Contract(), { conId: 12087820 }))
@@ -352,13 +358,117 @@ describe('IbkrBroker — getAccount mixed-currency math (ANG-101 / issues #295 #
     expect(a.netLiquidation).toBe('1046101.7')
   })
 
-  it('same-currency book keeps the reconstructed (fresher) netLiquidation', async () => {
+  it('prefers broker NetLiquidation for a same-currency book too', async () => {
     const b = brokerWithCache({
       TotalCashValue: '1000', NetLiquidation: '99999',
       RealizedPnL: '0', BuyingPower: '0', InitMarginReq: '0', MaintMarginReq: '0',
     }, [{ ...usdPos, multiplier: '1', quantity: '10' }])
     const a = await b.getAccount()
-    expect(a.netLiquidation).not.toBe('99999') // cash + Σ marketValue, not the cached tag
+    expect(a.netLiquidation).toBe('99999')
+  })
+
+  it('reconstructs NetLiquidation only when the broker value is unavailable', async () => {
+    const b = brokerWithCache({
+      TotalCashValue: '1000',
+      RealizedPnL: '0', BuyingPower: '0', InitMarginReq: '0', MaintMarginReq: '0',
+    }, [{ ...usdPos, multiplier: '1', quantity: '10', side: 'long' }])
+    const a = await b.getAccount()
+    expect(a.netLiquidation).toBe('3913.1')
+  })
+
+  it('reconstructs NetLiquidation when the broker value is non-finite', async () => {
+    const b = brokerWithCache({
+      TotalCashValue: '1000', NetLiquidation: 'NaN',
+      RealizedPnL: '0', BuyingPower: '0', InitMarginReq: '0', MaintMarginReq: '0',
+    }, [{ ...usdPos, multiplier: '1', quantity: '10', side: 'long' }])
+    const a = await b.getAccount()
+    expect(a.netLiquidation).toBe('3913.1')
+  })
+})
+
+describe('IbkrBroker — option position snapshot marks (issue #314)', () => {
+  function optionPosition() {
+    const contract = Object.assign(new Contract(), {
+      conId: 123456,
+      symbol: 'AAPL',
+      localSymbol: 'AAPL  260918C00250000',
+      secType: 'OPT' as const,
+      exchange: 'SMART',
+      currency: 'USD',
+      multiplier: '100',
+    })
+    return {
+      contract,
+      currency: 'USD',
+      side: 'long' as const,
+      quantity: new Decimal(2),
+      avgCost: '1.5',
+      marketPrice: '1',
+      marketValue: '200',
+      unrealizedPnL: '-100',
+      realizedPnL: '0',
+      multiplier: '100',
+    }
+  }
+
+  it('overlays an option midpoint and recomputes multiplier-aware value and PnL', async () => {
+    const position = optionPosition()
+    const { broker, bridge } = brokerWithContractIo(position.contract)
+    ;(bridge as unknown as { getAccountCache: unknown }).getAccountCache = () => ({
+      values: new Map(),
+      positions: [position],
+    })
+    bridge.requestSnapshot.mockResolvedValue({ bid: 2, ask: 4 })
+
+    const [refreshed] = await broker.getPositions()
+
+    expect(refreshed.marketPrice).toBe('3')
+    expect(refreshed.marketValue).toBe('600')
+    expect(refreshed.unrealizedPnL).toBe('300')
+    expect(bridge.requestSnapshot).toHaveBeenCalledOnce()
+    expect(bridge.requestSnapshot.mock.calls[0][2]).toEqual({ resolveOnBidAsk: true })
+    expect(position.marketPrice).toBe('1') // cache remains broker-owned
+  })
+
+  it('keeps cached option marks when snapshot data is unavailable', async () => {
+    const position = optionPosition()
+    const { broker, bridge } = brokerWithContractIo(position.contract)
+    ;(bridge as unknown as { getAccountCache: unknown }).getAccountCache = () => ({
+      values: new Map(),
+      positions: [position],
+    })
+    bridge.requestSnapshot.mockRejectedValue(new Error('market data subscription unavailable'))
+
+    await expect(broker.getPositions()).resolves.toEqual([position])
+    await expect(broker.getPositions()).resolves.toEqual([position])
+    expect(bridge.requestSnapshot).toHaveBeenCalledOnce() // short negative cache
+  })
+
+  it('coalesces concurrent refreshes for the same option conId', async () => {
+    const position = optionPosition()
+    const { broker, bridge } = brokerWithContractIo(position.contract)
+    ;(bridge as unknown as { getAccountCache: unknown }).getAccountCache = () => ({
+      values: new Map(),
+      positions: [position],
+    })
+
+    const [left, right] = await Promise.all([broker.getPositions(), broker.getPositions()])
+
+    expect(left[0].marketPrice).toBe('0.8')
+    expect(right[0].marketPrice).toBe('0.8')
+    expect(bridge.requestSnapshot).toHaveBeenCalledOnce()
+  })
+
+  it('does not request snapshots for non-option positions', async () => {
+    const position = { ...optionPosition(), contract: recordedContract('aapl-stock'), multiplier: '1' }
+    const { broker, bridge } = brokerWithContractIo(position.contract)
+    ;(bridge as unknown as { getAccountCache: unknown }).getAccountCache = () => ({
+      values: new Map(),
+      positions: [position],
+    })
+
+    await expect(broker.getPositions()).resolves.toEqual([position])
+    expect(bridge.requestSnapshot).not.toHaveBeenCalled()
   })
 })
 
@@ -376,5 +486,50 @@ describe('IbkrBroker — dead-connection gate (issue #294)', () => {
     // still carry the dead-connection cause, not a generic failure.
     expect(r.success).toBe(false)
     expect(r.error).toMatch(/connection lost/i)
+  })
+
+  it('probes the socket immediately before an order write', async () => {
+    const { broker, bridge, client } = brokerWithContractIo(recordedContract('aapl-stock'))
+    const { contract, order } = stkOrder()
+
+    await expect(broker.placeOrder(contract, order)).resolves.toMatchObject({ success: true })
+
+    expect(bridge.requestCurrentTime).toHaveBeenCalledOnce()
+    expect(client.placeOrder).toHaveBeenCalledOnce()
+    expect(bridge.requestCurrentTime.mock.invocationCallOrder[0])
+      .toBeLessThan(client.placeOrder.mock.invocationCallOrder[0])
+  })
+
+  it('marks the connection dead and refuses without touching the order socket when the probe fails', async () => {
+    const { broker, bridge, client } = brokerWithContractIo(recordedContract('aapl-stock'))
+    bridge.requestCurrentTime.mockRejectedValue(new Error('silent half-open'))
+    const { contract, order } = stkOrder()
+
+    const result = await broker.placeOrder(contract, order)
+
+    expect(result).toMatchObject({ success: false })
+    expect(result.error).toMatch(/liveness|connection/i)
+    expect(bridge.markDead).toHaveBeenCalledOnce()
+    expect(client.placeOrder).not.toHaveBeenCalled()
+  })
+
+  it('uses the same write probe for modify and cancel', async () => {
+    const canonical = recordedContract('aapl-stock')
+    const { broker, bridge, client } = brokerWithContractIo(canonical)
+    const originalOrder = limitBuy()
+    originalOrder.orderId = 42
+    ;(broker as unknown as { getOrder: unknown }).getOrder = vi.fn(async () => ({
+      contract: canonical,
+      order: originalOrder,
+      orderState: { status: 'Submitted' },
+    }))
+
+    await expect(broker.modifyOrder('42', { lmtPrice: new Decimal('0.2') }))
+      .resolves.toMatchObject({ success: true })
+    await expect(broker.cancelOrder('42')).resolves.toMatchObject({ success: true })
+
+    expect(bridge.requestCurrentTime).toHaveBeenCalledTimes(2)
+    expect(client.placeOrder).toHaveBeenCalledOnce()
+    expect(client.cancelOrder).toHaveBeenCalledOnce()
   })
 })

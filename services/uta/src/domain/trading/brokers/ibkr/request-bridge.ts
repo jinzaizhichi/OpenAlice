@@ -26,7 +26,7 @@ import {
   type EClient,
   type TickAttrib,
 } from '@traderalice/ibkr'
-import { BrokerError } from '../types.js'
+import { BrokerError, type BrokerConnectionStateEvent } from '../types.js'
 import { classifyIbkrError } from './ibkr-contracts.js'
 import { buildPosition } from '../contract-builder.js'
 import type {
@@ -37,6 +37,7 @@ import type {
 } from './ibkr-types.js'
 
 const DEFAULT_TIMEOUT_MS = 10_000
+const SNAPSHOT_TIMEOUT_MS = 12_500
 const ACCOUNT_READY_TIMEOUT_MS = 20_000
 
 export class RequestBridge extends DefaultEWrapper {
@@ -52,6 +53,7 @@ export class RequestBridge extends DefaultEWrapper {
 
   // ---- Mode A: tick snapshot accumulators ----
   private snapshots = new Map<number, TickSnapshot>()
+  private snapshotResolveOnBidAsk = new Set<number>()
 
   // ---- Mode B: orderId-based pending requests ----
   private orderPending = new Map<number, PendingRequest<CollectedOpenOrder>>()
@@ -92,12 +94,19 @@ export class RequestBridge extends DefaultEWrapper {
 
   // ---- Current time request ----
   private currentTimePending: PendingRequest<number> | null = null
+  private currentTimePromise: Promise<number> | null = null
+
+  private connectionStateListener: ((event: BrokerConnectionStateEvent) => void) | null = null
 
   // ==================== Public API ====================
 
   /** Store reference to the EClient for unsubscribe calls. */
   setClient(client: EClient): void {
     this.client_ = client
+  }
+
+  setConnectionStateListener(listener: ((event: BrokerConnectionStateEvent) => void) | null): void {
+    this.connectionStateListener = listener
   }
 
   /** Allocate a unique reqId (starts at 10000 to avoid orderId range). */
@@ -148,6 +157,9 @@ export class RequestBridge extends DefaultEWrapper {
     return new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(reqId)
+        this.collectors.delete(reqId)
+        this.snapshots.delete(reqId)
+        this.snapshotResolveOnBidAsk.delete(reqId)
         reject(new BrokerError('NETWORK', `Request ${reqId} timed out after ${timeoutMs}ms`))
       }, timeoutMs)
       this.pending.set(reqId, { resolve: resolve as (v: unknown) => void, reject, timer })
@@ -161,8 +173,13 @@ export class RequestBridge extends DefaultEWrapper {
   }
 
   /** Register a snapshot market data request. */
-  requestSnapshot(reqId: number, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<TickSnapshot> {
+  requestSnapshot(
+    reqId: number,
+    timeoutMs = SNAPSHOT_TIMEOUT_MS,
+    options: { resolveOnBidAsk?: boolean } = {},
+  ): Promise<TickSnapshot> {
     this.snapshots.set(reqId, {})
+    if (options.resolveOnBidAsk) this.snapshotResolveOnBidAsk.add(reqId)
     return this.request<TickSnapshot>(reqId, timeoutMs)
   }
 
@@ -214,15 +231,34 @@ export class RequestBridge extends DefaultEWrapper {
 
   /** Request current TWS server time. */
   requestCurrentTime(timeoutMs = DEFAULT_TIMEOUT_MS): Promise<number> {
-    return new Promise<number>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.currentTimePending = null
-        reject(new BrokerError('NETWORK', `currentTime request timed out`))
-      }, timeoutMs)
+    if (this.currentTimePromise) return this.currentTimePromise
 
-      this.currentTimePending = { resolve: resolve as (v: unknown) => void, reject, timer }
-      this.client_!.reqCurrentTime()
+    let resolvePromise!: (value: number) => void
+    let rejectPromise!: (error: Error) => void
+    const promise = new Promise<number>((resolve, reject) => {
+      resolvePromise = resolve
+      rejectPromise = reject
     })
+    this.currentTimePromise = promise
+    const clear = (): void => {
+      if (this.currentTimePromise === promise) this.currentTimePromise = null
+      this.currentTimePending = null
+    }
+    const timer = setTimeout(() => {
+      clear()
+      rejectPromise(new BrokerError('NETWORK', `currentTime request timed out`))
+    }, timeoutMs)
+    this.currentTimePending = {
+      resolve: (value) => { clearTimeout(timer); clear(); resolvePromise(value as number) },
+      reject: (error) => { clearTimeout(timer); clear(); rejectPromise(error) },
+      timer,
+    }
+    try {
+      this.client_!.reqCurrentTime()
+    } catch (err) {
+      this.currentTimePending?.reject(BrokerError.from(err, 'NETWORK'))
+    }
+    return promise
   }
 
   // ---- Mode D: persistent account subscription ----
@@ -274,6 +310,7 @@ export class RequestBridge extends DefaultEWrapper {
     this.pending.delete(reqId)
     this.collectors.delete(reqId)
     this.snapshots.delete(reqId)
+    this.snapshotResolveOnBidAsk.delete(reqId)
     entry.resolve(value)
   }
 
@@ -284,6 +321,7 @@ export class RequestBridge extends DefaultEWrapper {
     this.pending.delete(reqId)
     this.collectors.delete(reqId)
     this.snapshots.delete(reqId)
+    this.snapshotResolveOnBidAsk.delete(reqId)
     entry.reject(error)
   }
 
@@ -319,6 +357,7 @@ export class RequestBridge extends DefaultEWrapper {
     this.pending.clear()
     this.collectors.clear()
     this.snapshots.clear()
+    this.snapshotResolveOnBidAsk.clear()
 
     for (const [, entry] of this.orderPending) {
       clearTimeout(entry.timer)
@@ -381,11 +420,19 @@ export class RequestBridge extends DefaultEWrapper {
    *  (issue #294). */
   private connectionDead_ = false
   get connectionDead(): boolean { return this.connectionDead_ }
-  markDead(): void { this.connectionDead_ = true }
-  markAlive(): void { this.connectionDead_ = false }
+  markDead(error = 'Connection to TWS/Gateway lost'): void {
+    if (this.connectionDead_) return
+    this.connectionDead_ = true
+    this.connectionStateListener?.({ state: 'dead', error })
+  }
+  markAlive(): void {
+    const wasDead = this.connectionDead_
+    this.connectionDead_ = false
+    if (wasDead) this.connectionStateListener?.({ state: 'alive' })
+  }
 
   override connectionClosed(): void {
-    this.connectionDead_ = true
+    this.markDead()
     this.rejectAll(new BrokerError('NETWORK', 'Connection to TWS/Gateway lost'))
 
     if (this.connectReject) {
@@ -408,7 +455,11 @@ export class RequestBridge extends DefaultEWrapper {
     // System-level errors (reqId === -1) — connectivity events
     if (reqId === NO_VALID_ID) {
       if (errorCode === 502 || errorCode === 504 || errorCode === 1100) {
-        // These will be followed by connectionClosed() which rejects all
+        this.markDead(`TWS/Gateway reported connectivity lost (${errorCode})`)
+      } else if (errorCode === 1101 || errorCode === 1102) {
+        // A restored farm/socket is a reason to retry immediately, not proof
+        // that account subscriptions and private reads are healthy again.
+        this.connectionStateListener?.({ state: 'restored' })
       }
       return
     }
@@ -606,6 +657,14 @@ export class RequestBridge extends DefaultEWrapper {
       case TickTypeEnum.LOW:
       case TickTypeEnum.DELAYED_LOW: snap.low = price; break
     }
+
+    if (
+      this.snapshotResolveOnBidAsk.has(reqId)
+      && snap.bid != null && snap.bid > 0
+      && snap.ask != null && snap.ask > 0
+    ) {
+      this.resolveRequest(reqId, { ...snap })
+    }
   }
 
   override tickSize(reqId: number, tickType: number, size: Decimal): void {
@@ -701,8 +760,6 @@ export class RequestBridge extends DefaultEWrapper {
 
   override currentTime(time: number): void {
     if (!this.currentTimePending) return
-    clearTimeout(this.currentTimePending.timer)
     this.currentTimePending.resolve(time)
-    this.currentTimePending = null
   }
 }

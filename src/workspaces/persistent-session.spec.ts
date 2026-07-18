@@ -169,27 +169,73 @@ describe('PersistentSession backpressure / socket-drop deadlock', () => {
     session.dispose('test');
   });
 
-  it('accepts terminal capability replies triggered synchronously by replay', () => {
+  it('answers terminal capability queries while no renderer is attached', () => {
     const session = new PersistentSession(makeOptions({ command: ['opencode'] }));
     const terminalQuery = Buffer.from('\u001b[6n');
-    const terminalReply = Buffer.from('\u001b[24;80R');
     term.emitData(terminalQuery);
 
     const ws = new FakeWs();
+    session.attach(ws as never, 80, 24, undefined);
+
+    expect(term.write).toHaveBeenCalledOnce();
+    expect(term.write).toHaveBeenCalledWith('\u001b[1;1R');
+
+    session.dispose('test');
+  });
+
+  it('leaves terminal query replies to an attached renderer', () => {
+    const session = new PersistentSession(makeOptions({ command: ['opencode'] }));
+    const ws = new FakeWs();
+    const terminalQuery = Buffer.from('\u001b[6n');
+    const rendererReply = Buffer.from('\u001b[24;80R');
+    session.attach(ws as never, 80, 24, undefined);
+    term.write.mockClear();
     ws.send.mockImplementation((data: unknown, optsOrCb?: unknown, cb?: unknown) => {
       const callback = typeof optsOrCb === 'function' ? optsOrCb : cb;
       if (Buffer.isBuffer(data) && data.equals(terminalQuery)) {
-        // xterm replies while processing the replay frame, before attach()
-        // has returned to the caller.
-        ws.emit('message', terminalReply, true);
+        ws.emit('message', rendererReply, true);
       }
       if (typeof callback === 'function') callback(undefined);
     });
 
-    session.attach(ws as never, 80, 24, undefined);
+    term.emitData(terminalQuery);
 
     expect(term.write).toHaveBeenCalledOnce();
-    expect(term.write).toHaveBeenCalledWith(terminalReply);
+    expect(term.write).toHaveBeenCalledWith(rendererReply);
+
+    session.dispose('test');
+  });
+
+  it('uses a compact current-screen snapshot for cold attach', () => {
+    const session = new PersistentSession(makeOptions());
+    const raw = Buffer.from('stale frame\x1b[2J\x1b[Hcurrent frame');
+    term.emitData(raw);
+
+    const ws = new FakeWs();
+    session.attach(ws as never, 80, 24, undefined);
+
+    const binaryFrames = ws.send.mock.calls
+      .map(([data]) => data)
+      .filter((data): data is Buffer => Buffer.isBuffer(data));
+    expect(binaryFrames).toHaveLength(1);
+    expect(binaryFrames[0]?.toString('utf8')).toContain('current frame');
+    expect(binaryFrames[0]?.toString('utf8')).not.toContain('stale frame');
+
+    session.dispose('test');
+  });
+
+  it('keeps raw byte replay for hot attach cursors', () => {
+    const session = new PersistentSession(makeOptions());
+    const raw = Buffer.from('raw hot attach\x1b[6n');
+    term.emitData(raw);
+
+    const ws = new FakeWs();
+    session.attach(ws as never, 80, 24, 0);
+
+    const binaryFrames = ws.send.mock.calls
+      .map(([data]) => data)
+      .filter((data): data is Buffer => Buffer.isBuffer(data));
+    expect(binaryFrames).toEqual([raw]);
 
     session.dispose('test');
   });

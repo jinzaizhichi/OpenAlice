@@ -100,6 +100,29 @@ describe('buildSpawnEnv', () => {
     expect(lcAll['LC_CTYPE']).toBeUndefined()
   })
 
+  it('drops inherited color-disable switches without erasing explicit color preferences', () => {
+    const inherited = buildSpawnEnv({
+      NO_COLOR: '1',
+      FORCE_COLOR: '0',
+      CLICOLOR: '0',
+    })
+    expect(inherited['NO_COLOR']).toBeUndefined()
+    expect(inherited['FORCE_COLOR']).toBeUndefined()
+    expect(inherited['CLICOLOR']).toBeUndefined()
+
+    const enabled = buildSpawnEnv({ FORCE_COLOR: '3', CLICOLOR: '1' })
+    expect(enabled['FORCE_COLOR']).toBe('3')
+    expect(enabled['CLICOLOR']).toBe('1')
+
+    const explicit = buildSpawnEnv(
+      { NO_COLOR: '1', FORCE_COLOR: '0', CLICOLOR: '0' },
+      { FORCE_COLOR: '2', CLICOLOR: '1' },
+    )
+    expect(explicit['NO_COLOR']).toBeUndefined()
+    expect(explicit['FORCE_COLOR']).toBe('2')
+    expect(explicit['CLICOLOR']).toBe('1')
+  })
+
   it.skipIf(process.platform === 'win32')('adds common user CLI bins missing from GUI app PATH', () => {
     const home = mkdtempSync(join(tmpdir(), 'openalice-home-'))
     try {

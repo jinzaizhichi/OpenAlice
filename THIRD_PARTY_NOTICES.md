@@ -11,6 +11,11 @@ policy in `ui/src/components/workspace/terminalKeyboard.ts` are adapted from
 [`stablyai/orca`](https://github.com/stablyai/orca) commit
 `ab0f220c60739c90ecbedd327d0b4619e715570d`.
 
+`patches/@xterm__addon-serialize@0.15.0-beta.287.patch`, the headless terminal
+snapshot implementation in `src/workspaces/`, and the inherited terminal
+color-environment sanitization in `src/workspaces/spawn-env.ts` are adapted
+from the same Orca commit.
+
 MIT License
 
 Copyright (c) 2026 Lovecast Inc.

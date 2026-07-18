@@ -244,10 +244,9 @@ export function TerminalView(props: TerminalViewProps): ReactElement {
 
     if (appliedThemeVariantRef.current === terminalThemeProfile.variant) return;
     appliedThemeVariantRef.current = terminalThemeProfile.variant;
-    // Muxy-style terminal theming treats the raw PTY stream as the source of
-    // truth and the active theme as renderer config. Reattach so the server
-    // replays raw scrollback through the current xterm theme/profile, without
-    // mutating the output bytes themselves.
+    // Terminal theming keeps the PTY state and renderer palette separate.
+    // Reattach so the server serializes the authoritative screen at the live
+    // dimensions and xterm repaints it with the current palette.
     connectRef.current?.();
   }, [terminalThemeProfile]);
 
@@ -304,8 +303,9 @@ export function TerminalView(props: TerminalViewProps): ReactElement {
     let lastRows = term.rows;
 
     // Always cold attach: each TerminalView mount creates a fresh xterm
-    // instance with no in-memory history, so the server must replay the full
-    // buffer every time. (An earlier `since=<lastSeq>` localStorage scheme
+    // instance with no in-memory history, so the server must restore its
+    // authoritative headless snapshot every time. (An earlier
+    // `since=<lastSeq>` localStorage scheme
     // was wrong: it would correctly skip bytes the xterm already had, but
     // since the xterm was newly mounted there were none to skip — the user
     // ended up with a blank pane after switching workspaces.)
@@ -458,9 +458,9 @@ export function TerminalView(props: TerminalViewProps): ReactElement {
         attempts = 0;
         takeoverNextAttachRef.current = false;
         // A reconnect re-attaches to a live xterm that already shows the
-        // pre-drop screen, but the server cold-replays its full ring buffer on
-        // every attach. Reset first so the replay repaints cleanly instead of
-        // duplicating scrollback. (First connect: xterm is already blank.)
+        // pre-drop screen, but the server restores its current snapshot on
+        // every attach. Reset first so the snapshot repaints cleanly instead
+        // of duplicating scrollback. (First connect: xterm is already blank.)
         if (hasConnectedOnce) term.reset();
         hasConnectedOnce = true;
         setStatus('connected');

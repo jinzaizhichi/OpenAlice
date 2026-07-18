@@ -36,7 +36,7 @@ export function SettingsCategoryList() {
             key={item.category}
             label={t(item.labelKey)}
             active={active}
-            icon={<item.Icon size={14} strokeWidth={1.75} className="text-text-muted/70" aria-hidden />}
+            icon={<item.Icon size={14} strokeWidth={1.75} className="text-muted-foreground/70" aria-hidden />}
             onClick={() => openOrFocus({ kind: 'settings', params: { category: item.category } })}
           />
         )

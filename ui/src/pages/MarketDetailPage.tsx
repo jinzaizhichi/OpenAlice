@@ -48,8 +48,8 @@ function PinButton({ assetClass, symbol }: PinButtonProps) {
       title={pinned ? 'Remove from watchlist' : 'Add to watchlist'}
       className={`flex items-center gap-1.5 px-2.5 py-1 text-[12px] rounded-md border transition-colors ${
         pinned
-          ? 'border-amber-500/40 text-amber-400 bg-amber-500/10 hover:bg-amber-500/15'
-          : 'border-border text-text-muted hover:text-text hover:bg-bg-tertiary'
+          ? 'border-warning/40 text-warning bg-warning/10 hover:bg-warning/15'
+          : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
       }`}
     >
       <svg width="13" height="13" viewBox="0 0 24 24" fill={pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

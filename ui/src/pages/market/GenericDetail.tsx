@@ -16,11 +16,11 @@ export function GenericDetail({ symbol, assetClass }: Props) {
   return (
     <div className="flex flex-col gap-3 min-h-0 flex-1">
       <div className="flex items-end gap-2 px-1">
-        <span className="text-[20px] font-semibold text-text tracking-tight">{symbol}</span>
-        <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-bg-tertiary text-text-muted font-medium">
+        <span className="text-[20px] font-semibold text-foreground tracking-tight">{symbol}</span>
+        <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
           {assetClass}
         </span>
-        <span className="text-[11px] text-text-muted/70">
+        <span className="text-[11px] text-muted-foreground/70">
           Detail layout coming — for now, price history only.
         </span>
       </div>

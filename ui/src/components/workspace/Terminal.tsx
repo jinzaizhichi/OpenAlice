@@ -658,13 +658,13 @@ function TerminalThemeControl(): ReactElement {
 
 function StatusDot({ status }: { status: Status }): ReactElement {
   const colors: Record<Status, string> = {
-    connecting: '#d29922',
-    reconnecting: '#d29922',
-    connected: '#7ee787',
-    closed: '#6e7681',
-    error: '#ff7b72',
-    kicked: '#d2a8ff',
-    locked: '#d2a8ff',
+    connecting: 'var(--warning)',
+    reconnecting: 'var(--warning)',
+    connected: 'var(--success)',
+    closed: 'var(--muted-foreground)',
+    error: 'var(--destructive)',
+    kicked: 'var(--ai-action)',
+    locked: 'var(--ai-action)',
   };
   return (
     <span

@@ -31,17 +31,17 @@ export function MarketPage() {
 
         {/* S&P 500 valuation strip — the market-level regime read. */}
         <div className="flex flex-col gap-2">
-          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {t('market.valuationTitle')}
             {strip && <span className="ml-2 normal-case font-normal tracking-normal"><BoardMeta meta={strip.meta} /></span>}
           </h3>
           {stripError && (
-            <div className="rounded-md border border-border px-3 py-2 text-[12px] text-text-muted">{stripError}</div>
+            <div className="rounded-md border border-border px-3 py-2 text-[12px] text-muted-foreground">{stripError}</div>
           )}
           {!strip && !stripError && (
             <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(210px,1fr))]" aria-hidden="true">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="border border-border rounded-md bg-bg-secondary/40 px-3 py-2.5 flex flex-col gap-1.5">
+                <div key={i} className="border border-border rounded-md bg-secondary/40 px-3 py-2.5 flex flex-col gap-1.5">
                   <Skeleton className="h-3 w-20 rounded" />
                   <Skeleton className="h-6 w-24 rounded" />
                 </div>
@@ -57,18 +57,18 @@ export function MarketPage() {
           )}
         </div>
 
-        <section className="relative overflow-hidden rounded-xl border border-border/80 bg-bg-secondary/55 p-4 md:p-5">
+        <section className="relative overflow-hidden rounded-xl border border-border/80 bg-secondary/55 p-4 md:p-5">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,var(--color-accent-dim),transparent_52%)]"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,var(--primary-muted),transparent_52%)]"
           />
           <div className="relative">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
               {t('market.overviewEyebrow')}
             </p>
             <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-              <h2 className="text-[17px] font-semibold text-text">{t('market.overviewTitle')}</h2>
-              <p className="max-w-xl text-[12px] leading-relaxed text-text-muted">{t('market.overviewHint')}</p>
+              <h2 className="text-[17px] font-semibold text-foreground">{t('market.overviewTitle')}</h2>
+              <p className="max-w-xl text-[12px] leading-relaxed text-muted-foreground">{t('market.overviewHint')}</p>
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
@@ -119,13 +119,13 @@ function MarketLaunchCard({
     <button
       type="button"
       onClick={onClick}
-      className="group flex min-h-[92px] flex-col rounded-lg border border-border/70 bg-bg/75 p-3 text-left transition-[border-color,background-color,transform] hover:-translate-y-0.5 hover:border-accent/45 hover:bg-bg"
+      className="group flex min-h-[92px] flex-col rounded-lg border border-border/70 bg-background/75 p-3 text-left transition-[border-color,background-color,transform] hover:-translate-y-0.5 hover:border-primary/45 hover:bg-background"
     >
-      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent/10 text-accent transition-colors group-hover:bg-accent/15">
+      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
         {icon}
       </span>
-      <span className="mt-2 text-[13px] font-semibold text-text">{title}</span>
-      <span className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-text-muted">{description}</span>
+      <span className="mt-2 text-[13px] font-semibold text-foreground">{title}</span>
+      <span className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">{description}</span>
     </button>
   )
 }

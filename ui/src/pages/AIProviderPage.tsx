@@ -132,8 +132,8 @@ export function AIProviderPage() {
         <div className="max-w-[1100px] min-w-0 mx-auto grid gap-6 lg:grid-cols-2">
           {/* ============== Credentials ============== */}
           <section className="min-w-0">
-            <div className="rounded-lg border border-border/50 bg-bg-secondary/50 px-4 py-3 mb-4">
-              <p className="text-[13px] text-text-muted leading-relaxed">
+            <div className="rounded-lg border border-border/50 bg-secondary/50 px-4 py-3 mb-4">
+              <p className="text-[13px] text-muted-foreground leading-relaxed">
                 The API keys Alice keeps centrally. Templates inject them into new
                 workspaces, and a workspace's AI config can load any of them. Subscription
                 logins (Claude Pro/Max, ChatGPT) aren't stored here — they live in the agent
@@ -143,10 +143,10 @@ export function AIProviderPage() {
             </div>
 
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[13px] font-semibold text-text uppercase tracking-wide">Credentials</h2>
+              <h2 className="text-[13px] font-semibold text-foreground uppercase tracking-wide">Credentials</h2>
               <button
                 onClick={() => setModal({ mode: 'add' })}
-                className="text-[11px] px-2 py-1 rounded-md border border-border text-text-muted hover:text-accent hover:border-accent transition-colors"
+                className="text-[11px] px-2 py-1 rounded-md border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors"
               >
                 + Add
               </button>
@@ -156,37 +156,37 @@ export function AIProviderPage() {
               {credentials.map((cred) => {
                 const compatibleAgents = compatibleAgentIds(cred.wires)
                 return (
-                  <div key={cred.slug} className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-bg px-4 py-3 sm:flex-row sm:items-center">
+                  <div key={cred.slug} className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-background px-4 py-3 sm:flex-row sm:items-center">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13px] font-medium text-text">{credentialLabel(cred)}</span>
+                        <span className="text-[13px] font-medium text-foreground">{credentialLabel(cred)}</span>
                         {cred.label && (
-                          <span className="text-[11px] text-text-muted">{cred.vendor}</span>
+                          <span className="text-[11px] text-muted-foreground">{cred.vendor}</span>
                         )}
-                        <span className="text-[11px] text-text-muted font-mono">{cred.slug}</span>
+                        <span className="text-[11px] text-muted-foreground font-mono">{cred.slug}</span>
                         {compatibleAgents.map((agentId) => (
-                          <span key={agentId} className="text-[10px] text-text-muted border border-border rounded px-1">{AGENT_LABELS[agentId] ?? agentId}</span>
+                          <span key={agentId} className="text-[10px] text-muted-foreground border border-border rounded px-1">{AGENT_LABELS[agentId] ?? agentId}</span>
                         ))}
                         {cred.hasApiKey && (
-                          <span className="text-[10px] text-green border border-green/40 rounded px-1">key set</span>
+                          <span className="text-[10px] text-success border border-success/40 rounded px-1">key set</span>
                         )}
                       </div>
-                      <div className="mt-0.5 truncate text-[11px] text-text-muted">
+                      <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
                         Default model: <span className="font-mono">{cred.lastModel || 'not set'}</span>
-                        <span className="px-1.5 text-text-muted/50">·</span>
+                        <span className="px-1.5 text-muted-foreground/50">·</span>
                         <span className="font-mono">{Object.values(cred.wires)[0] || 'provider official endpoint'}</span>
                       </div>
                     </div>
                     <div className="flex shrink-0 gap-2 self-end sm:self-auto">
                       <button
                         onClick={() => setModal({ mode: 'edit', cred })}
-                        className="text-[11px] px-2 py-1 rounded-md border border-border text-text-muted hover:text-text transition-colors"
+                        className="text-[11px] px-2 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground transition-colors"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDelete(cred.slug)}
-                        className="text-[11px] px-2 py-1 rounded-md border border-border text-text-muted hover:text-red transition-colors"
+                        className="text-[11px] px-2 py-1 rounded-md border border-border text-muted-foreground hover:text-destructive transition-colors"
                       >
                         Delete
                       </button>
@@ -198,7 +198,7 @@ export function AIProviderPage() {
               {credentials.length === 0 && (
                 <button
                   onClick={() => setModal({ mode: 'add' })}
-                  className="w-full p-4 rounded-xl border-2 border-dashed border-border text-text-muted hover:border-accent/50 hover:text-accent transition-all text-[13px] font-medium"
+                  className="w-full p-4 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-primary/50 hover:text-primary transition-all text-[13px] font-medium"
                 >
                   + Add your first credential
                 </button>
@@ -208,8 +208,8 @@ export function AIProviderPage() {
 
           {/* ============== Agent runtimes ============== */}
           <section className="min-w-0">
-            <div className="rounded-lg border border-border/50 bg-bg-secondary/50 px-4 py-3 mb-4">
-              <p className="text-[13px] text-text-muted leading-relaxed">
+            <div className="rounded-lg border border-border/50 bg-secondary/50 px-4 py-3 mb-4">
+              <p className="text-[13px] text-muted-foreground leading-relaxed">
                 The agent runtimes a workspace can launch — a credential above feeds whichever
                 one a workspace (or cron job) runs. Pick by the models/provider you want; every
                 runtime reaches the full OpenAlice tool surface either way (native MCP where
@@ -219,21 +219,21 @@ export function AIProviderPage() {
               </p>
             </div>
 
-            <h2 className="text-[13px] font-semibold text-text uppercase tracking-wide mb-3">Agent runtimes</h2>
+            <h2 className="text-[13px] font-semibold text-foreground uppercase tracking-wide mb-3">Agent runtimes</h2>
 
             <div className="space-y-2.5">
               {AGENT_RUNTIMES.map((rt) => (
-                <div key={rt.id} className="rounded-lg border border-border bg-bg px-4 py-3">
+                <div key={rt.id} className="rounded-lg border border-border bg-background px-4 py-3">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-[13px] font-medium text-text">{rt.name}</span>
-                    <span className="text-[11px] text-text-muted font-mono">{rt.id}</span>
+                    <span className="text-[13px] font-medium text-foreground">{rt.name}</span>
+                    <span className="text-[11px] text-muted-foreground font-mono">{rt.id}</span>
                   </div>
-                  <p className="text-[12px] text-text-muted mt-0.5 leading-snug">{rt.blurb}</p>
+                  <p className="text-[12px] text-muted-foreground mt-0.5 leading-snug">{rt.blurb}</p>
                   <dl className="mt-2 space-y-1">
                     {rt.facts.map(([label, value]) => (
                       <div key={label} className="flex gap-2 text-[11px] leading-snug">
-                        <dt className="text-text-muted/70 shrink-0 w-[58px]">{label}</dt>
-                        <dd className="text-text-muted">{value}</dd>
+                        <dt className="text-muted-foreground/70 shrink-0 w-[58px]">{label}</dt>
+                        <dd className="text-muted-foreground">{value}</dd>
                       </div>
                     ))}
                   </dl>
@@ -366,15 +366,15 @@ function WorkspaceDefaultsSection({ credentials }: { credentials: CredentialSumm
       ? configuredWire
       : wireShapes[0] ?? ''
     return (
-      <div key={agent.id} className="flex flex-col gap-3 rounded-lg border border-border bg-bg px-4 py-3 sm:flex-row sm:items-center">
+      <div key={agent.id} className="flex flex-col gap-3 rounded-lg border border-border bg-background px-4 py-3 sm:flex-row sm:items-center">
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className="text-[13px] font-medium text-text">{agent.name}</span>
-            <span className="text-[11px] text-text-muted font-mono">{agent.id}</span>
+            <span className="text-[13px] font-medium text-foreground">{agent.name}</span>
+            <span className="text-[11px] text-muted-foreground font-mono">{agent.id}</span>
           </div>
-          {note && <p className="text-[11px] text-text-muted mt-0.5 leading-snug">{note}</p>}
+          {note && <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{note}</p>}
           {options.length === 0 && (
-            <p className="text-[11px] text-text-muted/70 mt-0.5 leading-snug">No compatible credential in the vault yet.</p>
+            <p className="text-[11px] text-muted-foreground/70 mt-0.5 leading-snug">No compatible credential in the vault yet.</p>
           )}
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[260px]">
@@ -402,12 +402,12 @@ function WorkspaceDefaultsSection({ credentials }: { credentials: CredentialSumm
             </select>
           )}
           {current && wireShapes.length === 1 && (
-            <p className="px-1 text-[10.5px] text-text-muted">
+            <p className="px-1 text-[10.5px] text-muted-foreground">
               Protocol: {WIRE_SHAPE_GUIDANCE[wireShapes[0]!]}
             </p>
           )}
           {agent.id === 'pi' && current && (
-            <label className="flex items-center gap-2 px-1 text-[10.5px] text-text-muted">
+            <label className="flex items-center gap-2 px-1 text-[10.5px] text-muted-foreground">
               <input
                 type="checkbox"
                 aria-label="Default Pi model supports reasoning"
@@ -425,8 +425,8 @@ function WorkspaceDefaultsSection({ credentials }: { credentials: CredentialSumm
 
   return (
     <section className="max-w-[1100px] mx-auto mt-6">
-      <div className="rounded-lg border border-border/50 bg-bg-secondary/50 px-4 py-3 mb-4">
-        <p className="text-[13px] text-text-muted leading-relaxed">
+      <div className="rounded-lg border border-border/50 bg-secondary/50 px-4 py-3 mb-4">
+        <p className="text-[13px] text-muted-foreground leading-relaxed">
           Seed a default credential into every <em>new</em> workspace, so you don’t open the
           per-workspace AI config each time. Choose the credential, protocol, and default context
           limit that should be written into the workspace’s own agent config
@@ -437,12 +437,12 @@ function WorkspaceDefaultsSection({ credentials }: { credentials: CredentialSumm
         </p>
       </div>
 
-      <h2 className="text-[13px] font-semibold text-text uppercase tracking-wide mb-3">Default workspace credentials</h2>
+      <h2 className="text-[13px] font-semibold text-foreground uppercase tracking-wide mb-3">Default workspace credentials</h2>
 
       {!data ? (
         <div className="space-y-2.5" aria-hidden="true">
           {PRIMARY_DEFAULT_AGENTS.map((a) => (
-            <div key={a.id} className="flex items-center gap-3 rounded-lg border border-border bg-bg px-4 py-3">
+            <div key={a.id} className="flex items-center gap-3 rounded-lg border border-border bg-background px-4 py-3">
               <div className="flex-1 min-w-0 space-y-1.5">
                 <Skeleton className="h-3.5 w-28 rounded" />
                 <Skeleton className="h-2.5 w-44 rounded" />
@@ -453,10 +453,10 @@ function WorkspaceDefaultsSection({ credentials }: { credentials: CredentialSumm
         </div>
       ) : (
         <div className="space-y-2.5">
-          <div className="flex flex-col gap-3 rounded-lg border border-border bg-bg px-4 py-3 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-3 rounded-lg border border-border bg-background px-4 py-3 sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1">
-              <div className="text-[13px] font-medium text-text">Default context window</div>
-              <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
+              <div className="text-[13px] font-medium text-foreground">Default context window</div>
+              <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
                 Applied to new opencode and Pi model entries. 256K avoids common higher-price tiers; existing workspaces stay unchanged.
               </p>
             </div>
@@ -478,14 +478,14 @@ function WorkspaceDefaultsSection({ credentials }: { credentials: CredentialSumm
 
           <button
             onClick={() => setShowAdvanced((v) => !v)}
-            className="text-[11px] text-text-muted hover:text-text transition-colors pt-1"
+            className="text-[11px] text-muted-foreground hover:text-foreground transition-colors pt-1"
           >
             {showAdvanced ? '▾' : '▸'} Advanced — Claude Code / Codex (unofficial API)
           </button>
 
           {showAdvanced && (
             <>
-              <p className="text-[11px] text-text-muted/80 leading-snug px-1">
+              <p className="text-[11px] text-muted-foreground/80 leading-snug px-1">
                 Only set these if you drive Claude Code / Codex through an unofficial API key
                 instead of their built-in login. A default here overwrites the CLI login in each
                 new workspace.
@@ -494,7 +494,7 @@ function WorkspaceDefaultsSection({ credentials }: { credentials: CredentialSumm
             </>
           )}
 
-          {error && <p className="text-[12px] text-red">{error}</p>}
+          {error && <p className="text-[12px] text-destructive">{error}</p>}
         </div>
       )}
     </section>

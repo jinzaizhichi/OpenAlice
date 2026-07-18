@@ -67,7 +67,7 @@ function CollectorSettings() {
             onChange={(feeds) => updateConfigImmediate({ feeds })}
           />
         </div>
-        {loadError && <p className="text-[13px] text-red mt-4">Failed to load configuration.</p>}
+        {loadError && <p className="text-[13px] text-destructive mt-4">Failed to load configuration.</p>}
       </div>
     </div>
   )
@@ -136,21 +136,21 @@ function FeedsSection({
                   onChange={(v) => setEnabled(i, v)}
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-text truncate">{feed.name}</p>
+                  <p className="text-[13px] font-medium text-foreground truncate">{feed.name}</p>
                   {feed.description && (
-                    <p className="text-[12px] text-text-muted/80 truncate">{feed.description}</p>
+                    <p className="text-[12px] text-muted-foreground/80 truncate">{feed.description}</p>
                   )}
-                  <p className="text-[11px] text-text-muted/60 truncate mt-0.5">{feed.url}</p>
+                  <p className="text-[11px] text-muted-foreground/60 truncate mt-0.5">{feed.url}</p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[11px] text-text-muted/50">source: {feed.source}</span>
+                    <span className="text-[11px] text-muted-foreground/50">source: {feed.source}</span>
                     {feed.categories && feed.categories.length > 0 && (
-                      <span className="text-[11px] text-text-muted/50">• {feed.categories.join(', ')}</span>
+                      <span className="text-[11px] text-muted-foreground/50">• {feed.categories.join(', ')}</span>
                     )}
                   </div>
                 </div>
                 <button
                   onClick={() => removeFeed(i)}
-                  className="shrink-0 text-text-muted hover:text-red transition-colors p-1"
+                  className="shrink-0 text-muted-foreground hover:text-destructive transition-colors p-1"
                   title="Remove feed"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -166,7 +166,7 @@ function FeedsSection({
 
       {/* Add feed form */}
       <div className="border border-border/40 rounded-lg p-4 space-y-3">
-        <p className="text-[13px] font-medium text-text-muted">Add Feed</p>
+        <p className="text-[13px] font-medium text-muted-foreground">Add Feed</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Name">
             <input className={inputClass} value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. CoinDesk" />

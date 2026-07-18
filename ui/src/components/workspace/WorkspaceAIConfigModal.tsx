@@ -61,7 +61,7 @@ interface Props {
 }
 
 const inputClass =
-  'w-full bg-bg-secondary border border-border rounded-md px-3 py-2 text-[13px] text-text placeholder:text-text-muted/60 focus:outline-none focus:border-accent'
+  'w-full bg-secondary border border-border rounded-md px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary'
 
 const TAB_LABEL: Record<Tab, string> = { claude: 'Claude Code', codex: 'Codex', opencode: 'opencode', pi: 'Pi' }
 const DEFAULT_CONTEXT_WINDOW = 256_000
@@ -414,23 +414,23 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-backdrop backdrop-blur-sm"
       onMouseDown={handleBackdropMouseDown}
     >
       <div
-        className="bg-bg border border-border rounded-xl shadow-2xl w-[calc(100vw-24px)] max-w-3xl max-h-[85vh] flex flex-col"
+        className="bg-background border border-border rounded-xl shadow-2xl w-[calc(100vw-24px)] max-w-3xl max-h-[85vh] flex flex-col"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="min-w-0">
-            <h2 className="text-[15px] font-semibold text-text">Workspace Settings</h2>
-            <p className="mt-0.5 truncate text-[11px] text-text-muted">{workspaceLabel}</p>
+            <h2 className="text-[15px] font-semibold text-foreground">Workspace Settings</h2>
+            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{workspaceLabel}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-text-muted hover:bg-bg-tertiary hover:text-text transition-colors"
+            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             aria-label="Close workspace settings"
             title="Close"
           >
@@ -439,14 +439,14 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
-          <aside className="flex w-full shrink-0 gap-1 border-b border-border bg-bg-secondary/25 p-2 sm:block sm:w-40 sm:border-b-0 sm:border-r">
+          <aside className="flex w-full shrink-0 gap-1 border-b border-border bg-secondary/25 p-2 sm:block sm:w-40 sm:border-b-0 sm:border-r">
             <button
               type="button"
               onClick={() => setSection('general')}
               className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12px] font-medium transition-colors sm:w-full ${
                 section === 'general'
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-text-muted hover:bg-bg-tertiary hover:text-text'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
               <Settings size={15} />
@@ -457,8 +457,8 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
               onClick={() => setSection('ai')}
               className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12px] font-medium transition-colors sm:mt-1 sm:w-full ${
                 section === 'ai'
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-text-muted hover:bg-bg-tertiary hover:text-text'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
               <Bot size={15} />
@@ -469,14 +469,14 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
               onClick={() => setSection('template')}
               className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12px] font-medium transition-colors sm:mt-1 sm:w-full ${
                 section === 'template'
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-text-muted hover:bg-bg-tertiary hover:text-text'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
               <Layers3 size={15} />
               <span>Template</span>
               {workspace?.upgradeAvailable && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent" aria-label="Update available" />
+                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" aria-label="Update available" />
               )}
             </button>
             <button
@@ -484,8 +484,8 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
               onClick={() => setSection('absorb')}
               className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12px] font-medium transition-colors sm:mt-1 sm:w-full ${
                 section === 'absorb'
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-text-muted hover:bg-bg-tertiary hover:text-text'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
               <GitMerge size={15} />
@@ -499,7 +499,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
                 <div className="flex-1 overflow-y-auto p-4">
                   <div className="max-w-xl space-y-4">
                   <div>
-                    <label className="block text-xs font-medium text-text-muted mb-1">Display name</label>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Display name</label>
                     <input
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
@@ -507,14 +507,14 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
                       placeholder={stableTag}
                       className={inputClass}
                     />
-                    <div className="mt-1 flex items-center justify-between gap-3 text-[11px] text-text-muted/70">
+                    <div className="mt-1 flex items-center justify-between gap-3 text-[11px] text-muted-foreground/70">
                       <span>Shown in the workspace list and tab titles.</span>
                       <span>{displayName.length}/80</span>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-text-muted mb-1">Description</label>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Description</label>
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
@@ -523,19 +523,19 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
                       placeholder="Short note for recognizing this workspace."
                       className={`${inputClass} min-h-28 resize-y leading-relaxed`}
                     />
-                    <div className="mt-1 flex items-center justify-between gap-3 text-[11px] text-text-muted/70">
+                    <div className="mt-1 flex items-center justify-between gap-3 text-[11px] text-muted-foreground/70">
                       <span>Shown on workspace overview cards.</span>
                       <span>{description.length}/240</span>
                     </div>
                   </div>
 
-                  <div className="rounded-lg border border-border bg-bg-secondary/30 p-3">
+                  <div className="rounded-lg border border-border bg-secondary/30 p-3">
                     <div className="flex items-start gap-2">
-                      <Info size={14} className="mt-0.5 shrink-0 text-text-muted" />
+                      <Info size={14} className="mt-0.5 shrink-0 text-muted-foreground" />
                       <div className="min-w-0">
-                        <div className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Stable tag</div>
-                        <div className="mt-1 truncate font-mono text-[12px] text-text">{stableTag}</div>
-                        <p className="mt-1 text-[11px] leading-snug text-text-muted/75">
+                        <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Stable tag</div>
+                        <div className="mt-1 truncate font-mono text-[12px] text-foreground">{stableTag}</div>
+                        <p className="mt-1 text-[11px] leading-snug text-muted-foreground/75">
                           The tag stays stable for paths and launcher bookkeeping; the display name is the human-facing label.
                         </p>
                       </div>
@@ -543,19 +543,19 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
                   </div>
 
                   {error && (
-                    <div className="rounded-md border border-red/40 bg-red/10 text-red text-[12px] px-3 py-2">
+                    <div className="rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-[12px] px-3 py-2">
                       {error}
                     </div>
                   )}
                   {metadataSavedFlash && (
-                    <div className="rounded-md border border-green/40 bg-green/10 text-green text-[12px] px-3 py-2">
+                    <div className="rounded-md border border-success/40 bg-success/10 text-success text-[12px] px-3 py-2">
                       Saved to <code className="font-mono text-[11.5px]">.alice/workspace.json</code>.
                     </div>
                   )}
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 border-t border-border bg-bg-secondary/30 p-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-[11px] text-text-muted/75">
+                <div className="flex flex-col gap-2 border-t border-border bg-secondary/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-[11px] text-muted-foreground/75">
                     Stored in <code className="font-mono text-[11.5px]">.alice/workspace.json</code>.
                   </p>
                   <div className="flex justify-end gap-2">
@@ -563,7 +563,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
                       type="button"
                       onClick={onClose}
                       disabled={metadataSaving}
-                      className="px-3 py-2 rounded-md text-text-muted hover:text-text text-[13px] disabled:opacity-40"
+                      className="px-3 py-2 rounded-md text-muted-foreground hover:text-foreground text-[13px] disabled:opacity-40"
                     >
                       Cancel
                     </button>
@@ -571,7 +571,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
                       type="button"
                       onClick={handleSaveMetadata}
                       disabled={metadataSaving || !metadataDirty}
-                      className="px-4 py-2 rounded-md bg-accent text-bg text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent/90 transition-colors"
+                      className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
                     >
                       {metadataSaving ? 'Saving…' : 'Save'}
                     </button>
@@ -583,7 +583,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
             {section === 'ai' && (
               <>
         {/* Tabs */}
-        <div className="flex border-b border-border bg-bg-secondary/50">
+        <div className="flex border-b border-border bg-secondary/50">
           {(['claude', 'codex', 'opencode', 'pi'] as const).map((id) => (
             <button
               key={id}
@@ -594,8 +594,8 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
               }}
               className={`flex-1 px-4 py-2.5 text-[13px] font-medium transition-colors ${
                 tab === id
-                  ? 'text-accent border-b-2 border-accent -mb-px'
-                  : 'text-text-muted hover:text-text'
+                  ? 'text-primary border-b-2 border-primary -mb-px'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {TAB_LABEL[id]}
@@ -606,8 +606,8 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* Quick pick — load a saved credential into the form */}
-          <div className="rounded-lg border border-border bg-bg-secondary/30 p-3">
-            <label className="block text-xs font-medium text-text-muted mb-2">
+          <div className="rounded-lg border border-border bg-secondary/30 p-3">
+            <label className="block text-xs font-medium text-muted-foreground mb-2">
               Load from saved credential
             </label>
             {(() => {
@@ -661,12 +661,12 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
                     <button
                       onClick={applyCredential}
                       disabled={!pickedCredential}
-                      className="px-3 py-2 rounded-md bg-accent text-bg text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent/90 transition-colors"
+                      className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
                     >
                       Load
                     </button>
                   </div>
-                  <p className="text-[11px] text-text-muted/80 leading-snug mt-1.5">
+                  <p className="text-[11px] text-muted-foreground/80 leading-snug mt-1.5">
                     {compatible.length === 0 && credentials.length > 0
                       ? `None of your saved credentials speak a wire ${TAB_LABEL[tab]} supports — add one for this provider, or use a runtime that matches (pi / opencode).`
                       : 'Fills base URL + key from a credential Alice already holds. When it exposes several compatible protocols, choose the one this Workspace should use. Pick a model below, or type a new one.'}
@@ -679,7 +679,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
           {/* Manual fields */}
           {(tab === 'opencode' || tab === 'pi') && (
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">API protocol</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">API protocol</label>
               <select
                 aria-label={`${TAB_LABEL[tab]} API protocol`}
                 value={form.wireShape}
@@ -703,14 +703,14 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
                   <option key={shape} value={shape}>{WIRE_SHAPE_GUIDANCE[shape]}</option>
                 ))}
               </select>
-              <p className="text-[11px] text-text-muted/80 leading-snug mt-1">
+              <p className="text-[11px] text-muted-foreground/80 leading-snug mt-1">
                 This chooses the agent SDK/provider adapter. The Base URL must expose the matching protocol.
               </p>
             </div>
           )}
 
           {tab === 'pi' && (
-            <label className="flex items-start gap-2.5 rounded-md border border-border bg-bg-secondary/50 px-3 py-2.5">
+            <label className="flex items-start gap-2.5 rounded-md border border-border bg-secondary/50 px-3 py-2.5">
               <input
                 type="checkbox"
                 aria-label="Pi model supports reasoning"
@@ -718,8 +718,8 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
                 onChange={(e) => setForm({ ...form, reasoning: e.target.checked })}
                 className="mt-0.5"
               />
-              <span className="text-[12px] leading-relaxed text-text-muted">
-                <strong className="text-text">Model supports reasoning.</strong>{' '}
+              <span className="text-[12px] leading-relaxed text-muted-foreground">
+                <strong className="text-foreground">Model supports reasoning.</strong>{' '}
                 Enables Pi's native thinking controls for this custom model. Leave this off for
                 models that do not expose reasoning tokens.
               </span>
@@ -727,7 +727,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
           )}
 
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">Base URL</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Base URL</label>
             <input
               value={form.baseUrl}
               onChange={(e) => setForm({ ...form, baseUrl: e.target.value })}
@@ -748,7 +748,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">API Key</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">API Key</label>
             <div className="flex gap-2">
               <input
                 type={showKey ? 'text' : 'password'}
@@ -762,7 +762,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
               />
               <button
                 onClick={() => setShowKey(!showKey)}
-                className="px-3 rounded-md border border-border text-text-muted hover:text-text text-[12px]"
+                className="px-3 rounded-md border border-border text-muted-foreground hover:text-foreground text-[12px]"
                 type="button"
               >
                 {showKey ? 'Hide' : 'Show'}
@@ -772,7 +772,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
 
           {form.wireShape === 'anthropic' && (
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Auth header</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Auth header</label>
               <select
                 aria-label={`${TAB_LABEL[tab]} auth header`}
                 value={form.authMode}
@@ -782,7 +782,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
                 <option value="x-api-key">x-api-key — Anthropic default</option>
                 <option value="bearer">Authorization: Bearer — gateways (MiniMax, LongCat, proxies)</option>
               </select>
-              <p className="text-[11px] text-text-muted/80 leading-snug mt-1">
+              <p className="text-[11px] text-muted-foreground/80 leading-snug mt-1">
                 Anthropic first-party uses <code className="font-mono text-[10.5px]">x-api-key</code>.
                 Switch to <code className="font-mono text-[10.5px]">Bearer</code> for
                 anthropic-compatible gateways that authenticate via{' '}
@@ -793,7 +793,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
           )}
 
           <div>
-            <label className="block text-xs font-medium text-text-muted mb-1">Model</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Model</label>
             <ModelCombobox
               value={form.model}
               suggestions={modelSuggestions}
@@ -801,14 +801,14 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
               placeholder={tab === 'claude' ? 'claude-opus-4-8' : tab === 'opencode' || tab === 'pi' ? 'deepseek-chat' : 'gpt-5.5'}
             />
             {modelSuggestions.length > 0 && (
-              <p className="text-[11px] text-text-muted/70 mt-1">Suggestions from the matched provider — or type any model id.</p>
+              <p className="text-[11px] text-muted-foreground/70 mt-1">Suggestions from the matched provider — or type any model id.</p>
             )}
 
           </div>
 
           {(tab === 'opencode' || tab === 'pi') && (
             <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Context window</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Context window</label>
               <select
                 aria-label={`${TAB_LABEL[tab]} context window`}
                 value={form.contextWindow}
@@ -823,40 +823,40 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
           )}
 
           {tab === 'codex' && (
-            <div className="rounded-md border border-border bg-bg-secondary/50 px-3 py-2.5 space-y-2">
-              <p className="text-[12px] text-text-muted leading-relaxed">
-                <strong className="text-text">Wire format is locked to <code className="font-mono text-[11.5px]">responses</code>.</strong>{' '}
+            <div className="rounded-md border border-border bg-secondary/50 px-3 py-2.5 space-y-2">
+              <p className="text-[12px] text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">Wire format is locked to <code className="font-mono text-[11.5px]">responses</code>.</strong>{' '}
                 Codex 0.130+ hard-rejects <code className="font-mono text-[11.5px]">wire_api = "chat"</code> and only speaks the OpenAI Responses API.
               </p>
-              <p className="text-[12px] text-text-muted leading-relaxed">
-                <strong className="text-text">Chat-only providers</strong> (DeepSeek, Qwen, Moonshot, GLM, LM Studio, vLLM, llama.cpp, etc.) don't expose a Responses endpoint and won't work here directly.
+              <p className="text-[12px] text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">Chat-only providers</strong> (DeepSeek, Qwen, Moonshot, GLM, LM Studio, vLLM, llama.cpp, etc.) don't expose a Responses endpoint and won't work here directly.
                 Run a translation proxy and point Base URL at it — e.g.{' '}
-                <strong className="text-text">OpenRouter</strong> (hosted, BYOK) or{' '}
-                <strong className="text-text">VibeAround</strong> (local) both speak Responses on the wire and forward to Chat Completions backends.
+                <strong className="text-foreground">OpenRouter</strong> (hosted, BYOK) or{' '}
+                <strong className="text-foreground">VibeAround</strong> (local) both speak Responses on the wire and forward to Chat Completions backends.
               </p>
             </div>
           )}
 
           {tab === 'opencode' && (
-            <div className="rounded-md border border-border bg-bg-secondary/50 px-3 py-2.5">
-              <p className="text-[12px] text-text-muted leading-relaxed">
+            <div className="rounded-md border border-border bg-secondary/50 px-3 py-2.5">
+              <p className="text-[12px] text-muted-foreground leading-relaxed">
                 {form.wireShape === 'google-generative-ai' ? (
-                  <><strong className="text-text">Native Google Generative AI wire</strong> (via{' '}
+                  <><strong className="text-foreground">Native Google Generative AI wire</strong> (via{' '}
                   <code className="font-mono text-[11.5px]">@ai-sdk/google</code>) — supports current{' '}
                   <code className="font-mono text-[11.5px]">AQ.</code> authorization keys and legacy{' '}
                   <code className="font-mono text-[11.5px]">AIza</code> keys without a translation proxy.</>
                 ) : form.wireShape === 'anthropic' ? (
-                  <><strong className="text-text">Anthropic Messages wire</strong> (via{' '}
+                  <><strong className="text-foreground">Anthropic Messages wire</strong> (via{' '}
                   <code className="font-mono text-[11.5px]">@ai-sdk/anthropic</code>) — use the
                   provider's Anthropic-compatible endpoint and choose its required auth header.</>
                 ) : form.wireShape === 'openai-responses' ? (
-                  <><strong className="text-text">OpenAI Responses wire</strong> (via{' '}
+                  <><strong className="text-foreground">OpenAI Responses wire</strong> (via{' '}
                   <code className="font-mono text-[11.5px]">@ai-sdk/openai</code>) — use an endpoint
                   that implements Responses, not a Chat-only compatibility URL.</>
                 ) : (
-                  <><strong className="text-text">Speaks OpenAI Chat Completions</strong> (via{' '}
+                  <><strong className="text-foreground">Speaks OpenAI Chat Completions</strong> (via{' '}
                   <code className="font-mono text-[11.5px]">@ai-sdk/openai-compatible</code>), so it
-                  connects <strong className="text-text">directly</strong> to Chat-only providers —
+                  connects <strong className="text-foreground">directly</strong> to Chat-only providers —
                   DeepSeek, Qwen, Moonshot/Kimi, GLM, MiniMax — and local runtimes (Ollama, vLLM,
                   LM Studio). No translation proxy needed. Base URL is the provider's
                   OpenAI-compatible endpoint; Model is the bare model id.</>
@@ -866,21 +866,21 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
           )}
 
           {tab === 'pi' && (
-            <div className="rounded-md border border-border bg-bg-secondary/50 px-3 py-2.5">
-              <p className="text-[12px] text-text-muted leading-relaxed">
+            <div className="rounded-md border border-border bg-secondary/50 px-3 py-2.5">
+              <p className="text-[12px] text-muted-foreground leading-relaxed">
                 {form.wireShape === 'google-generative-ai' ? (
-                  <><strong className="text-text">Native Google Generative AI wire</strong> — sends current{' '}
+                  <><strong className="text-foreground">Native Google Generative AI wire</strong> — sends current{' '}
                   <code className="font-mono text-[11.5px]">AQ.</code> authorization keys and legacy{' '}
                   <code className="font-mono text-[11.5px]">AIza</code> keys as{' '}
                   <code className="font-mono text-[11.5px]">x-goog-api-key</code>.</>
                 ) : form.wireShape === 'anthropic' ? (
-                  <><strong className="text-text">Anthropic Messages wire</strong> — use the
+                  <><strong className="text-foreground">Anthropic Messages wire</strong> — use the
                   provider's Anthropic-compatible endpoint and choose its required auth header.</>
                 ) : form.wireShape === 'openai-responses' ? (
-                  <><strong className="text-text">OpenAI Responses wire</strong> — use an endpoint
+                  <><strong className="text-foreground">OpenAI Responses wire</strong> — use an endpoint
                   that implements Responses rather than Chat Completions only.</>
                 ) : (
-                  <><strong className="text-text">OpenAI Chat Completions wire</strong> — connects
+                  <><strong className="text-foreground">OpenAI Chat Completions wire</strong> — connects
                   directly to DeepSeek, Qwen, Kimi, GLM, MiniMax and local runtimes; Base URL is the
                   provider's OpenAI-compatible endpoint, Model is the bare model id.</>
                 )}{' '}OpenAlice registers the custom provider in Pi's normal user model registry,
@@ -895,17 +895,17 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
           )}
 
           {error && (
-            <div className="rounded-md border border-red/40 bg-red/10 text-red text-[12px] px-3 py-2">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-[12px] px-3 py-2">
               {error}
             </div>
           )}
           {savedFlash && (
-            <div className="rounded-md border border-green/40 bg-green/10 text-green text-[12px] px-3 py-2">
+            <div className="rounded-md border border-success/40 bg-success/10 text-success text-[12px] px-3 py-2">
               Saved. Pause + resume any open session to reload.
             </div>
           )}
           {offerSaveCred && (
-            <div className="rounded-md border border-accent/40 bg-accent/10 text-text text-[12px] px-3 py-2.5 flex items-center justify-between gap-3">
+            <div className="rounded-md border border-primary/40 bg-primary/10 text-foreground text-[12px] px-3 py-2.5 flex items-center justify-between gap-3">
               <span className="leading-snug">
                 Save this provider to Alice so other workspaces can reuse it?
               </span>
@@ -913,14 +913,14 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
                 <button
                   onClick={() => setOfferSaveCred(false)}
                   disabled={savingCred}
-                  className="px-2.5 py-1 rounded-md border border-border text-text-muted hover:text-text text-[12px] disabled:opacity-40"
+                  className="px-2.5 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground text-[12px] disabled:opacity-40"
                 >
                   Not now
                 </button>
                 <button
                   onClick={handleSaveCredential}
                   disabled={savingCred}
-                  className="px-2.5 py-1 rounded-md bg-accent text-bg text-[12px] font-medium disabled:opacity-40 hover:bg-accent/90"
+                  className="px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-[12px] font-medium disabled:opacity-40 hover:bg-primary/90"
                 >
                   {savingCred ? 'Saving…' : 'Save to Alice'}
                 </button>
@@ -928,23 +928,23 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
             </div>
           )}
           {credFlash && (
-            <div className="rounded-md border border-green/40 bg-green/10 text-green text-[12px] px-3 py-2">
+            <div className="rounded-md border border-success/40 bg-success/10 text-success text-[12px] px-3 py-2">
               {credFlash}
             </div>
           )}
           {testing && (
-            <div className="rounded-md border border-border bg-bg-secondary text-text-muted text-[12px] px-3 py-2">
+            <div className="rounded-md border border-border bg-secondary text-muted-foreground text-[12px] px-3 py-2">
               Testing…
             </div>
           )}
           {!testing && result?.ok && resultMatchesCurrent && (
-            <div className="rounded-md border border-green/40 bg-green/10 text-green text-[12px] px-3 py-2">
+            <div className="rounded-md border border-success/40 bg-success/10 text-success text-[12px] px-3 py-2">
               {result.response?.trim() ? (
                 <>
                   <div className="font-medium mb-0.5">
                     Test passed — {tab === 'claude' ? 'Anthropic' : tab === 'opencode' || tab === 'pi' ? 'the provider' : 'OpenAI'} replied:
                   </div>
-                  <div className="text-text whitespace-pre-wrap break-words font-mono text-[11.5px]">
+                  <div className="text-foreground whitespace-pre-wrap break-words font-mono text-[11.5px]">
                     {result.response.trim()}
                   </div>
                 </>
@@ -954,7 +954,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
             </div>
           )}
           {!testing && result && !result.ok && resultMatchesCurrent && (
-            <div className="rounded-md border border-red/40 bg-red/10 text-red text-[12px] px-3 py-2">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-[12px] px-3 py-2">
               <div className="font-medium mb-0.5">Test failed:</div>
               <div className="whitespace-pre-wrap break-words font-mono text-[11.5px]">
                 {result.error}
@@ -962,14 +962,14 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
             </div>
           )}
           {!testing && result && !resultMatchesCurrent && (
-            <div className="rounded-md border border-yellow-400/30 bg-yellow-400/5 text-yellow-400/90 text-[12px] px-3 py-2">
+            <div className="rounded-md border border-warning/30 bg-warning/5 text-warning/90 text-[12px] px-3 py-2">
               Form changed since last test — re-test before saving.
             </div>
           )}
 
-          <p className="text-[11px] text-text-muted/80 leading-snug pt-1">
+          <p className="text-[11px] text-muted-foreground/80 leading-snug pt-1">
             Empty fields fall back to the CLI's global default. Changes apply to
-            <strong className="text-text"> new sessions</strong>; pause and resume
+            <strong className="text-foreground"> new sessions</strong>; pause and resume
             any open session to re-load.
             {tab === 'claude' && ' Claude reads `.claude/settings.local.json` from the workspace cwd.'}
             {tab === 'codex' && ' Codex reads `.codex/config.toml` + `.codex/env.json` (via CODEX_HOME).'}
@@ -979,12 +979,12 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col gap-2 p-3 border-t border-border bg-bg-secondary/30 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 p-3 border-t border-border bg-secondary/30 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-2">
             <button
               onClick={handleReset}
               disabled={saving}
-              className="px-3 py-2 rounded-md border border-border text-text-muted hover:text-text text-[12px] disabled:opacity-40"
+              className="px-3 py-2 rounded-md border border-border text-muted-foreground hover:text-foreground text-[12px] disabled:opacity-40"
             >
               Reset to global default
             </button>
@@ -993,7 +993,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
             <button
               onClick={onClose}
               disabled={saving}
-              className="px-3 py-2 rounded-md text-text-muted hover:text-text text-[13px]"
+              className="px-3 py-2 rounded-md text-muted-foreground hover:text-foreground text-[13px]"
             >
               Cancel
             </button>
@@ -1006,7 +1006,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
                 onClick={handleTest}
                 disabled={!canTest || testing || saving}
                 title={!canTest ? 'Fill base URL, API key, and model first' : undefined}
-                className="px-4 py-2 rounded-md bg-accent text-bg text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent/90 transition-colors"
+                className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
               >
                 {testing ? 'Testing…' : 'Test'}
               </button>
@@ -1014,7 +1014,7 @@ export function WorkspaceAIConfigModal({ wsId, onClose, initialAgent = 'claude',
               <button
                 onClick={handleSave}
                 disabled={saving || !dirty}
-                className="px-4 py-2 rounded-md bg-accent text-bg text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent/90 transition-colors"
+                className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
               >
                 {saving ? 'Saving…' : 'Save'}
               </button>

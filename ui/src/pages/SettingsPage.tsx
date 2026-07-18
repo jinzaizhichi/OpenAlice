@@ -22,10 +22,10 @@ function AppearanceSection() {
     <ConfigSection title={t('settings.appearance.title')} description={t('settings.appearance.description')}>
       <div className="flex items-center justify-between gap-4 py-1">
         <div className="flex-1">
-          <span className="text-sm font-medium text-text">
+          <span className="text-sm font-medium text-foreground">
             {t('settings.appearance.showEditorTabs')}
           </span>
-          <p className="text-[12px] text-text-muted mt-0.5 leading-relaxed">
+          <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">
             {showEditorTabs
               ? t('settings.appearance.showEditorTabsOn')
               : t('settings.appearance.showEditorTabsOff')}
@@ -53,8 +53,8 @@ function LanguageSection() {
             onClick={() => setLocale(l)}
             className={`px-3 py-1.5 text-sm rounded border transition-colors ${
               locale === l
-                ? 'border-accent text-accent bg-accent/10'
-                : 'border-border text-text-muted hover:text-text'
+                ? 'border-primary text-primary bg-primary/10'
+                : 'border-border text-muted-foreground hover:text-foreground'
             }`}
           >
             {LOCALE_LABELS[l]}
@@ -88,12 +88,12 @@ export function DataHomeSection() {
         title={t('settings.dataHome.title')}
         description={t('settings.dataHome.description')}
       >
-        <div className="rounded-lg border border-border/60 bg-bg-secondary/50 px-3 py-3">
-          <p className="text-[13px] text-text">{t('settings.dataHome.browserOnly')}</p>
-          <p className="mt-2 break-all font-mono text-[12px] text-text-muted">
+        <div className="rounded-lg border border-border/60 bg-secondary/50 px-3 py-3">
+          <p className="text-[13px] text-foreground">{t('settings.dataHome.browserOnly')}</p>
+          <p className="mt-2 break-all font-mono text-[12px] text-muted-foreground">
             openalice start --home &lt;path&gt;
           </p>
-          <p className="mt-1 break-all font-mono text-[12px] text-text-muted">
+          <p className="mt-1 break-all font-mono text-[12px] text-muted-foreground">
             pnpm dev -- --home &lt;path&gt;
           </p>
         </div>
@@ -139,21 +139,21 @@ export function DataHomeSection() {
       title={t('settings.dataHome.title')}
       description={t('settings.dataHome.description')}
     >
-      <div className="rounded-lg border border-border/60 bg-bg-secondary/50 px-3 py-3">
+      <div className="rounded-lg border border-border/60 bg-secondary/50 px-3 py-3">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] uppercase tracking-wide text-text-muted">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
             {t('settings.dataHome.current')}
           </p>
           {status && (
-            <span className="rounded-full border border-border px-2 py-0.5 text-[10px] text-text-muted">
+            <span className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
               {t(`settings.dataHome.source.${status.source}`)}
             </span>
           )}
         </div>
-        <p data-testid="data-home-current" className="mt-1 break-all font-mono text-[12px] text-text">
+        <p data-testid="data-home-current" className="mt-1 break-all font-mono text-[12px] text-foreground">
           {status?.currentHome ?? t('settings.dataHome.loading')}
         </p>
-        <p className="mt-2 text-[11px] leading-relaxed text-text-muted">
+        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
           {t('settings.dataHome.switchNote')}
         </p>
       </div>
@@ -182,8 +182,8 @@ export function DataHomeSection() {
 
       <div className="mt-4 flex items-center justify-between gap-4 rounded-lg border border-border/60 px-3 py-2.5">
         <div className="flex-1">
-          <p className="text-[13px] font-medium text-text">{t('settings.dataHome.askOnStartup')}</p>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-text-muted">
+          <p className="text-[13px] font-medium text-foreground">{t('settings.dataHome.askOnStartup')}</p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
             {t('settings.dataHome.askOnStartupDescription')}
           </p>
         </div>
@@ -197,13 +197,13 @@ export function DataHomeSection() {
 
       {recentHomes.length > 0 && (
         <div className="mt-4">
-          <p className="mb-2 text-[11px] uppercase tracking-wide text-text-muted">
+          <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
             {t('settings.dataHome.recent')}
           </p>
           <div className="space-y-2">
             {recentHomes.map((path) => (
               <div key={path} className="flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2">
-                <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-text" title={path}>
+                <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-foreground" title={path}>
                   {path}
                 </span>
                 <button
@@ -221,11 +221,11 @@ export function DataHomeSection() {
       )}
 
       {lockDescription && (
-        <p className="mt-3 rounded-lg border border-yellow/30 bg-yellow/5 px-3 py-2 text-[11px] leading-relaxed text-yellow">
+        <p className="mt-3 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-[11px] leading-relaxed text-warning">
           {lockDescription}
         </p>
       )}
-      {error && <p className="mt-3 text-[11px] text-red">{error}</p>}
+      {error && <p className="mt-3 text-[11px] text-destructive">{error}</p>}
     </ConfigSection>
   )
 }
@@ -303,14 +303,14 @@ function WorkspaceShellSection() {
           />
         </Field>
       )}
-      <div className="rounded-lg border border-border/60 bg-bg-secondary/50 px-3 py-2.5 mb-3">
-        <p className="text-[11px] uppercase tracking-wide text-text-muted">
+      <div className="rounded-lg border border-border/60 bg-secondary/50 px-3 py-2.5 mb-3">
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
           {t('settings.workspaceShell.resolved')}
         </p>
-        <p className="mt-1 break-all font-mono text-[12px] text-text">
+        <p className="mt-1 break-all font-mono text-[12px] text-foreground">
           {status.resolvedPath ?? t('settings.workspaceShell.notFound')}
         </p>
-        <p className={`mt-1 text-[11px] ${status.valid ? 'text-green' : 'text-red'}`}>
+        <p className={`mt-1 text-[11px] ${status.valid ? 'text-success' : 'text-destructive'}`}>
           {status.valid
             ? t('settings.workspaceShell.source', { source: status.source })
             : status.message ?? t('settings.workspaceShell.notFound')}
@@ -325,7 +325,7 @@ function WorkspaceShellSection() {
         >
           {saving ? t('settings.workspaceShell.saving') : t('settings.workspaceShell.save')}
         </button>
-        {error && <span className="text-[11px] text-red">{error}</span>}
+        {error && <span className="text-[11px] text-destructive">{error}</span>}
       </div>
     </ConfigSection>
   )
@@ -441,7 +441,7 @@ function PersonaEditor() {
     }
   }
 
-  if (loading) return <div className="text-sm text-text-muted">{t('settings.persona.loading')}</div>
+  if (loading) return <div className="text-sm text-muted-foreground">{t('settings.persona.loading')}</div>
 
   return (
     <>
@@ -460,21 +460,21 @@ function PersonaEditor() {
         </button>
         {saved && (
           <span className="inline-flex items-center gap-1.5 text-[11px]">
-            <span className="w-1.5 h-1.5 rounded-full bg-green" />
-            <span className="text-text-muted">{t('settings.persona.saved')}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-success" />
+            <span className="text-muted-foreground">{t('settings.persona.saved')}</span>
           </span>
         )}
         {error && (
           <span className="inline-flex items-center gap-1.5 text-[11px]">
-            <span className="w-1.5 h-1.5 rounded-full bg-red" />
-            <span className="text-red">{error}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-destructive" />
+            <span className="text-destructive">{error}</span>
           </span>
         )}
         {dirty && !saved && !error && (
-          <span className="text-[11px] text-text-muted">{t('settings.persona.unsaved')}</span>
+          <span className="text-[11px] text-muted-foreground">{t('settings.persona.unsaved')}</span>
         )}
       </div>
-      {filePath && <p className="text-[11px] text-text-muted mt-1">{filePath}</p>}
+      {filePath && <p className="text-[11px] text-muted-foreground mt-1">{filePath}</p>}
     </>
   )
 }
@@ -577,7 +577,7 @@ function ToolsSection() {
       ) : (
         <div className="max-w-[880px] mx-auto">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-[13px] text-text-muted">
+            <p className="text-[13px] text-muted-foreground">
               {t('settings.tools.summary', { tools: inventory.length, groups: groups.length })}
             </p>
             <SaveIndicator status={status} onRetry={retry} />
@@ -629,7 +629,7 @@ function ToolGroupCard({
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       {/* Group header */}
-      <div className="flex items-center gap-3 px-4 py-2.5 bg-bg-secondary">
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-secondary">
         <button
           onClick={onToggleExpanded}
           className="flex items-center gap-2 flex-1 text-left min-w-0"
@@ -641,8 +641,8 @@ function ToolGroupCard({
           >
             <polyline points="9 18 15 12 9 6" />
           </svg>
-          <span className="text-sm font-medium text-text truncate">{label}</span>
-          <span className="text-[11px] text-text-muted shrink-0">
+          <span className="text-sm font-medium text-foreground truncate">{label}</span>
+          <span className="text-[11px] text-muted-foreground shrink-0">
             {enabledCount}/{group.tools.length}
           </span>
         </button>
@@ -670,9 +670,9 @@ function ToolGroupCard({
                 }`}
               >
                 <div className="flex-1 min-w-0">
-                  <span className="text-[13px] text-text font-mono">{t.name}</span>
+                  <span className="text-[13px] text-foreground font-mono">{t.name}</span>
                   {t.description && (
-                    <p className="text-[11px] text-text-muted mt-0.5 line-clamp-1">
+                    <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
                       {t.description}
                     </p>
                   )}
@@ -715,12 +715,12 @@ export function SettingsPage() {
               key={item.key}
               onClick={() => setTab(item.key)}
               className={`px-3 py-2 text-sm font-medium transition-colors relative ${
-                tab === item.key ? 'text-accent' : 'text-text-muted hover:text-text'
+                tab === item.key ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {t(item.labelKey)}
               {tab === item.key && (
-                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-accent rounded-t" />
+                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-t" />
               )}
             </button>
           ))}

@@ -119,17 +119,17 @@ function ReplayPane({ label, transcript }: { label: string; transcript: Transcri
   return (
     <div className="terminal-shell">
       <header className="terminal-header">
-        <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-amber-400">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+        <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-warning">
+          <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
           Replay
         </span>
-        <span className="text-[11px] text-text-muted truncate">{label}</span>
+        <span className="text-[11px] text-muted-foreground truncate">{label}</span>
         <span className="flex-1" />
         {done && (
           <button
             type="button"
             onClick={() => setReplayKey((k) => k + 1)}
-            className="text-[11px] text-amber-400 hover:underline"
+            className="text-[11px] text-warning hover:underline"
           >
             ↻ Replay again
           </button>

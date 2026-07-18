@@ -35,7 +35,7 @@ export function MCPPage() {
               description="Disabled by default. Enable only when you intentionally want another local MCP client to call OpenAlice."
             >
               <Field label="Enabled">
-                <label className="inline-flex items-center gap-2 text-[13px] text-text">
+                <label className="inline-flex items-center gap-2 text-[13px] text-foreground">
                   <input
                     type="checkbox"
                     checked={config.enabled}
@@ -56,7 +56,7 @@ export function MCPPage() {
             </ConfigSection>
           </div>
         )}
-        {loadError && <p className="text-[13px] text-red">Failed to load configuration.</p>}
+        {loadError && <p className="text-[13px] text-destructive">Failed to load configuration.</p>}
       </div>
     </div>
   )

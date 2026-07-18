@@ -3,6 +3,7 @@ export type DesignVariantLayout =
   | 'mode-ladder'
   | 'goal-picker'
   | 'quiet-checklist'
+  | 'semantic-colors'
 
 export interface DesignVariant {
   id: string
@@ -29,6 +30,41 @@ export interface DesignProject {
 }
 
 export const designProjects: DesignProject[] = [
+  {
+    slug: 'semantic-colors',
+    title: 'Semantic color system',
+    eyebrow: 'Living color card',
+    status: 'Current implementation',
+    updatedAt: '2026-07-18',
+    context: {
+      why: 'OpenAlice used separate physical color names, Tailwind palette shades, chart literals, and Workspace aliases. This project renders the shared semantic contract that now drives the product UI without requiring a component library.',
+      goals: [
+        'Keep the core CSS vocabulary aligned with Orca and shadcn.',
+        'Make light and dark palette changes visible on one real product route.',
+        'Keep trading, status, AI, and chart extensions explicit and small.',
+        'Give reviewers a fast contrast and hierarchy smoke test.',
+      ],
+      constraints: [
+        'The route consumes the real CSS variables; it must not duplicate palette values.',
+        'Terminal ANSI colors remain separately projected until the later unified appearance work.',
+        'Product components must not select Tailwind palette shades directly.',
+      ],
+      openQuestions: [
+        'Which product extensions can collapse into the terminal-compatible subset later?',
+        'Should imported terminal themes optionally seed the neutral product surfaces?',
+      ],
+    },
+    variants: [
+      {
+        id: 'A',
+        name: 'Current semantic palette',
+        summary: 'The live core, product extensions, and representative component states.',
+        intent: 'Use this route while adjusting palette.css so both themes and common semantic pairings can be judged together.',
+        risk: 'A color card cannot replace route-level visual review for dense trading and Workspace surfaces.',
+        layout: 'semantic-colors',
+      },
+    ],
+  },
   {
     slug: 'first-run-onboarding',
     title: 'First-run onboarding',

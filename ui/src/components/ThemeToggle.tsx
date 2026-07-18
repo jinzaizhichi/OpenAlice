@@ -34,12 +34,12 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
       onClick={cycle}
       title={t('theme.switchTo', { mode: t(`theme.mode.${NEXT[theme]}`) })}
       aria-label={t('theme.switchTo', { mode: t(`theme.mode.${NEXT[theme]}`) })}
-      className={`relative flex ${compact ? 'h-9 w-9 md:h-[26px] md:w-[26px]' : 'h-9 w-9'} shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-overlay hover:text-text`}
+      className={`relative flex ${compact ? 'h-9 w-9 md:h-[26px] md:w-[26px]' : 'h-9 w-9'} shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground`}
     >
       <Icon size={compact ? 14 : 17} strokeWidth={1.75} aria-hidden />
       {theme === 'auto' && (
         <span
-          className={`absolute right-0 top-0 rounded-[3px] border border-border bg-bg-tertiary px-[2px] py-px text-[7px] ${compact ? 'md:text-[6px]' : ''} font-semibold leading-none text-text-muted shadow-sm`}
+          className={`absolute right-0 top-0 rounded-[3px] border border-border bg-muted px-[2px] py-px text-[7px] ${compact ? 'md:text-[6px]' : ''} font-semibold leading-none text-muted-foreground shadow-sm`}
           aria-hidden
         >
           Auto

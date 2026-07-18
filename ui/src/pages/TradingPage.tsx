@@ -107,14 +107,14 @@ function ExternalOrderMonitoringRow() {
   return (
     <div className="flex items-center justify-between gap-3 px-4 py-3 border border-border rounded-lg">
       <div className="min-w-0">
-        <div className="text-[12px] font-medium text-text">External order monitoring</div>
-        <div className="text-[11px] text-text-muted">
+        <div className="text-[12px] font-medium text-foreground">External order monitoring</div>
+        <div className="text-[11px] text-muted-foreground">
           How often to scan for orders placed outside Alice (exchange app, direct API).
           Known pending orders are tracked every 10s regardless.
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        {msg && <span className="text-[11px] text-text-muted">{msg}</span>}
+        {msg && <span className="text-[11px] text-muted-foreground">{msg}</span>}
         <select
           value={value}
           onChange={(e) => { void save(e.target.value) }}
@@ -189,13 +189,13 @@ export function KeylessDataSourcesRow({ ccxtPack, onPackInstalled }: {
     <div className="px-4 py-3 border border-border rounded-lg">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[12px] font-medium text-text">Public crypto data sources</div>
-          <div className="text-[11px] text-text-muted leading-relaxed mt-0.5">
+          <div className="text-[12px] font-medium text-foreground">Public crypto data sources</div>
+          <div className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
             Optional keyless K-line feeds. Disabled by default; enabled sources appear as read-only broker-style bar IDs.
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {msg && <span className="text-[11px] text-text-muted">{msg}</span>}
+          {msg && <span className="text-[11px] text-muted-foreground">{msg}</span>}
           {ccxtPack && !ccxtPack.installed && (
             <button className="btn-secondary" disabled={installing} onClick={() => { void install() }}>
               {installing ? 'Installing…' : ccxtPack.source === 'broken' ? 'Repair data support' : 'Install data support'}
@@ -207,8 +207,8 @@ export function KeylessDataSourcesRow({ ccxtPack, onPackInstalled }: {
         {KEYLESS_DATA_SOURCE_OPTIONS.map((source) => {
           const checked = runtimeConfig.keylessDataSources.includes(source.id)
           return (
-            <div key={source.id} className="flex items-center justify-between gap-2 rounded-md border border-border bg-bg-secondary/40 px-3 py-2">
-              <span className="text-[12px] text-text">{source.label}</span>
+            <div key={source.id} className="flex items-center justify-between gap-2 rounded-md border border-border bg-secondary/40 px-3 py-2">
+              <span className="text-[12px] text-foreground">{source.label}</span>
               <Toggle
                 size="sm"
                 checked={checked}
@@ -263,21 +263,21 @@ export function MissingBrokerPacksNotice({ packs, onInstalled }: {
   }
 
   return (
-    <div className="rounded-lg border border-yellow-400/30 bg-yellow-400/5 px-4 py-3">
+    <div className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3">
       <div className="flex items-start gap-2.5">
-        <AlertTriangle size={15} className="mt-0.5 shrink-0 text-yellow-400" />
+        <AlertTriangle size={15} className="mt-0.5 shrink-0 text-warning" />
         <div className="min-w-0 flex-1">
-          <div className="text-[12px] font-medium text-text">Optional broker support is missing</div>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-text-muted">
+          <div className="text-[12px] font-medium text-foreground">Optional broker support is missing</div>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
             OpenAlice itself can keep running. Install only the integrations used by these accounts or K-line sources.
           </p>
           <div className="mt-3 space-y-2">
             {missing.map((pack) => (
               <div key={pack.engine} className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2">
                 <div className="min-w-0">
-                  <div className="text-[12px] font-medium uppercase text-text">{pack.engine}</div>
-                  <div className="truncate text-[11px] text-text-muted">Required by {pack.requiredBy.join(', ')}</div>
-                  {pack.reason && <div className="mt-0.5 text-[11px] text-yellow-400">{pack.reason}</div>}
+                  <div className="text-[12px] font-medium uppercase text-foreground">{pack.engine}</div>
+                  <div className="truncate text-[11px] text-muted-foreground">Required by {pack.requiredBy.join(', ')}</div>
+                  {pack.reason && <div className="mt-0.5 text-[11px] text-warning">{pack.reason}</div>}
                 </div>
                 <button
                   className="btn-secondary shrink-0"
@@ -289,7 +289,7 @@ export function MissingBrokerPacksNotice({ packs, onInstalled }: {
               </div>
             ))}
           </div>
-          {error && <p className="mt-2 text-[11px] text-red">{error}</p>}
+          {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
         </div>
       </div>
     </div>
@@ -376,7 +376,7 @@ export function TradingPage() {
     <PageShell subtitle="Configure your UTAs (Unified Trading Accounts).">
       <div className="max-w-[820px] mx-auto space-y-2.5" aria-hidden="true">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3.5 rounded-lg border border-border bg-bg-secondary">
+          <div key={i} className="flex items-center gap-3 px-4 py-3.5 rounded-lg border border-border bg-secondary">
             <Skeleton className="h-9 w-9 rounded-lg" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-3.5 w-32" />
@@ -391,7 +391,7 @@ export function TradingPage() {
   if (tc.error) {
     return (
       <PageShell subtitle="Failed to load trading configuration.">
-        <p className="text-[13px] text-red">{tc.error}</p>
+        <p className="text-[13px] text-destructive">{tc.error}</p>
         <button onClick={tc.refresh} className="mt-2 btn-secondary">Retry</button>
       </PageShell>
     )
@@ -428,7 +428,7 @@ export function TradingPage() {
               })}
               <button
                 onClick={() => setShowAdd(true)}
-                className="w-full py-2.5 text-[12px] text-text-muted hover:text-text border border-dashed border-border hover:border-text-muted/40 rounded-lg transition-colors"
+                className="w-full py-2.5 text-[12px] text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-muted-foreground/40 rounded-lg transition-colors"
               >
                 + Add UTA
               </button>
@@ -500,13 +500,13 @@ function PageShell({ subtitle, children }: { subtitle: string; children?: React.
 
 function TradingServiceOfflineBanner({ status }: { status: TradingServiceStatus }) {
   return (
-    <div className="flex gap-3 rounded-lg border border-yellow-400/30 bg-yellow-400/5 px-4 py-3" role="status">
-      <AlertTriangle size={16} className="mt-0.5 shrink-0 text-yellow-400" aria-hidden />
+    <div className="flex gap-3 rounded-lg border border-warning/30 bg-warning/5 px-4 py-3" role="status">
+      <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden />
       <div className="min-w-0">
-        <div className="text-[12px] font-medium text-text">Trading service offline</div>
-        <div className="mt-0.5 text-[11px] text-text-muted leading-relaxed">
+        <div className="text-[12px] font-medium text-foreground">Trading service offline</div>
+        <div className="mt-0.5 text-[11px] text-muted-foreground leading-relaxed">
           {status.hint ?? 'Alice is running in lite mode.'}
-          {status.reason ? <span className="ml-1 font-mono text-text-muted/70">{status.reason}</span> : null}
+          {status.reason ? <span className="ml-1 font-mono text-muted-foreground/70">{status.reason}</span> : null}
         </div>
       </div>
     </div>
@@ -518,8 +518,8 @@ function TradingServiceOfflineBanner({ status }: { status: TradingServiceStatus 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="rounded-xl border border-dashed border-border p-12 text-center">
-      <h3 className="text-[16px] font-semibold text-text mb-2">No UTAs configured</h3>
-      <p className="text-[13px] text-text-muted mb-6 max-w-[320px] mx-auto leading-relaxed">
+      <h3 className="text-[16px] font-semibold text-foreground mb-2">No UTAs configured</h3>
+      <p className="text-[13px] text-muted-foreground mb-6 max-w-[320px] mx-auto leading-relaxed">
         Connect a crypto exchange or brokerage to start automated trading.
       </p>
       <button onClick={onAdd} className="btn-primary">
@@ -566,7 +566,7 @@ function UTACard({ uta, preset, health, equity, onClick }: {
   const isDisabled = health?.disabled || uta.enabled === false
   const badge = preset
     ? { text: preset.badge, color: `${preset.badgeColor} ${preset.badgeColor.replace('text-', 'bg-')}/10` }
-    : { text: uta.presetId.slice(0, 2).toUpperCase(), color: 'text-text-muted bg-text-muted/10' }
+    : { text: uta.presetId.slice(0, 2).toUpperCase(), color: 'text-muted-foreground bg-muted-foreground/10' }
 
   // Per-card equity is a liveness signal, not a portfolio view —
   // proves the connection returned a real account balance, not just
@@ -580,27 +580,27 @@ function UTACard({ uta, preset, health, equity, onClick }: {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left rounded-lg border border-border bg-bg-secondary/30 px-4 py-3 transition-all hover:border-text-muted/40 hover:bg-bg-tertiary/20 ${isDisabled ? 'opacity-50' : ''}`}
+      className={`w-full text-left rounded-lg border border-border bg-secondary/30 px-4 py-3 transition-all hover:border-muted-foreground/40 hover:bg-muted/20 ${isDisabled ? 'opacity-50' : ''}`}
     >
       <div className="flex items-center gap-3">
         <span className={`text-[10px] font-bold px-2 py-1 rounded-md shrink-0 ${badge.color}`}>
           {badge.text}
         </span>
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-medium text-text truncate">{uta.label || uta.id}</div>
-          <div className="text-[11px] text-text-muted truncate mt-0.5 font-mono">
+          <div className="text-[13px] font-medium text-foreground truncate">{uta.label || uta.id}</div>
+          <div className="text-[11px] text-muted-foreground truncate mt-0.5 font-mono">
             {uta.id}
-            <span className="mx-1.5 text-text-muted/40">·</span>
+            <span className="mx-1.5 text-muted-foreground/40">·</span>
             {buildSubtitle(uta, preset)}
-            {uta.guards.length > 0 && <span className="ml-1.5 text-text-muted/50">{uta.guards.length} guard{uta.guards.length > 1 ? 's' : ''}</span>}
+            {uta.guards.length > 0 && <span className="ml-1.5 text-muted-foreground/50">{uta.guards.length} guard{uta.guards.length > 1 ? 's' : ''}</span>}
           </div>
         </div>
         <div className="shrink-0 flex items-center gap-3">
           {equityNode && (
-            <span className="text-[11px] text-text-muted/80 hidden sm:inline">{equityNode}</span>
+            <span className="text-[11px] text-muted-foreground/80 hidden sm:inline">{equityNode}</span>
           )}
           {uta.enabled === false
-            ? <span className="text-[11px] text-text-muted">Disabled</span>
+            ? <span className="text-[11px] text-muted-foreground">Disabled</span>
             : <HealthBadge health={health} />
           }
         </div>

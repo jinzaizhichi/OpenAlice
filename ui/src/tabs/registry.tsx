@@ -499,18 +499,31 @@ const fileViewerModule: ViewModule<'file-viewer'> = {
   kind: 'file-viewer',
   // Tab title = file basename; path itself shows in the page header.
   title: (spec) => spec.params.path.split('/').filter(Boolean).pop() ?? spec.params.path,
-  toUrl: (spec) =>
-    `/workspaces/${encodeURIComponent(spec.params.wsId)}/view/${encodeURIComponent(spec.params.path)}`,
-  Component: ({ spec }) => (
-    <PageSidebarShell
-      storageKey="workspaces"
-      titleKey="nav.item.workspaces"
-      defaultWidth={300}
-      sidebar={<WorkspacesSidebar />}
-    >
-      <FileViewerPage spec={spec} />
-    </PageSidebarShell>
-  ),
+  toUrl: (spec) => {
+    const base = spec.params.source === 'chat'
+      ? `/chat/workspaces/${encodeURIComponent(spec.params.wsId)}`
+      : `/workspaces/${encodeURIComponent(spec.params.wsId)}`
+    const query = spec.params.returnSessionId
+      ? `?sessionId=${encodeURIComponent(spec.params.returnSessionId)}`
+      : ''
+    return `${base}/view/${encodeURIComponent(spec.params.path)}${query}`
+  },
+  Component: ({ spec }) => spec.params.source === 'chat'
+    ? (
+      <ChatPageShell>
+        <FileViewerPage spec={spec} />
+      </ChatPageShell>
+    )
+    : (
+      <PageSidebarShell
+        storageKey="workspaces"
+        titleKey="nav.item.workspaces"
+        defaultWidth={300}
+        sidebar={<WorkspacesSidebar />}
+      >
+        <FileViewerPage spec={spec} />
+      </PageSidebarShell>
+    ),
 }
 
 // ==================== Aggregate ====================
